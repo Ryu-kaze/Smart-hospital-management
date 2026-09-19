@@ -299,16 +299,28 @@ export default function App() {
     showToast('New patient intake complete and encrypted vault initialized.');
   };
 
-  // Auto-Schedule Appointment
-  const handleAutoSchedule = async (patientId: string, symptoms: string, urgency: string, doctor?: string) => {
+  // Auto-Schedule Appointment (Triage)
+  const handleAutoSchedule = async (arg1: any, symptoms?: string, urgency?: string, doctor?: string) => {
+    let patientId = arg1;
+    let conditionDescription = symptoms;
+    let reportedUrgency = urgency || 'Routine';
+    let preferredDoctor = doctor;
+
+    if (typeof arg1 === 'object' && arg1 !== null) {
+      patientId = arg1.patientId;
+      conditionDescription = arg1.chiefComplaint || (Array.isArray(arg1.symptoms) ? arg1.symptoms.join(', ') : arg1.symptoms) || 'General Consultation';
+      reportedUrgency = arg1.reportedUrgency || arg1.urgency || 'Routine';
+      preferredDoctor = arg1.preferredDoctor || arg1.doctor;
+    }
+
     const res = await fetch('/api/appointments/auto-schedule', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         patientId,
-        conditionDescription: symptoms,
-        reportedUrgency: urgency,
-        preferredDoctor: doctor,
+        conditionDescription,
+        reportedUrgency,
+        preferredDoctor,
         actorName: currentUser.name,
         actorRole: currentUser.role
       })
@@ -471,7 +483,7 @@ export default function App() {
       />
 
       {/* Sub-Navigation Bar */}
-      <div className="bg-white border-b border-slate-200">
+      <div className="bg-white border-b border-[#D5DDD9] shadow-2xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between overflow-x-auto">
           <nav className="flex space-x-1 sm:space-x-2 py-2">
             <button
@@ -479,14 +491,14 @@ export default function App() {
               onClick={() => setActiveTab('beds')}
               className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold transition-colors cursor-pointer shrink-0 ${
                 activeTab === 'beds'
-                  ? 'bg-blue-600 text-white shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                  ? 'bg-[#0E2C27] text-white shadow-xs'
+                  : 'text-slate-700 hover:text-slate-900 hover:bg-[#EDF2EF]'
               }`}
             >
               <BedIcon className="w-4 h-4" />
-              <span>Real-Time Bed Tracker</span>
-              <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${
-                activeTab === 'beds' ? 'bg-blue-500 text-white' : 'bg-slate-200 text-slate-700'
+              <span>Ward Census & Telemetry</span>
+              <span className={`text-[10px] font-mono-clinical font-bold px-1.5 py-0.2 rounded-full ${
+                activeTab === 'beds' ? 'bg-[#184F45] text-emerald-300' : 'bg-slate-200 text-slate-700'
               }`}>
                 {beds.filter(b => b.status === 'occupied').length}/{beds.length}
               </span>
@@ -497,14 +509,14 @@ export default function App() {
               onClick={() => setActiveTab('patients')}
               className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold transition-colors cursor-pointer shrink-0 ${
                 activeTab === 'patients'
-                  ? 'bg-blue-600 text-white shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                  ? 'bg-[#0E2C27] text-white shadow-xs'
+                  : 'text-slate-700 hover:text-slate-900 hover:bg-[#EDF2EF]'
               }`}
             >
               <FileText className="w-4 h-4" />
-              <span>Encrypted EHR Records</span>
-              <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${
-                activeTab === 'patients' ? 'bg-blue-500 text-white' : 'bg-slate-200 text-slate-700'
+              <span>Cryptographic EHR</span>
+              <span className={`text-[10px] font-mono-clinical font-bold px-1.5 py-0.2 rounded-full ${
+                activeTab === 'patients' ? 'bg-[#184F45] text-emerald-300' : 'bg-slate-200 text-slate-700'
               }`}>
                 {patients.length}
               </span>
@@ -515,14 +527,14 @@ export default function App() {
               onClick={() => setActiveTab('appointments')}
               className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold transition-colors cursor-pointer shrink-0 ${
                 activeTab === 'appointments'
-                  ? 'bg-blue-600 text-white shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                  ? 'bg-[#0E2C27] text-white shadow-xs'
+                  : 'text-slate-700 hover:text-slate-900 hover:bg-[#EDF2EF]'
               }`}
             >
               <Calendar className="w-4 h-4" />
-              <span>Automated Scheduling</span>
-              <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${
-                activeTab === 'appointments' ? 'bg-blue-500 text-white' : 'bg-slate-200 text-slate-700'
+              <span>Triage & Scheduling</span>
+              <span className={`text-[10px] font-mono-clinical font-bold px-1.5 py-0.2 rounded-full ${
+                activeTab === 'appointments' ? 'bg-[#184F45] text-emerald-300' : 'bg-slate-200 text-slate-700'
               }`}>
                 {appointments.length}
               </span>
@@ -533,14 +545,14 @@ export default function App() {
               onClick={() => setActiveTab('billing')}
               className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold transition-colors cursor-pointer shrink-0 ${
                 activeTab === 'billing'
-                  ? 'bg-blue-600 text-white shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                  ? 'bg-[#0E2C27] text-white shadow-xs'
+                  : 'text-slate-700 hover:text-slate-900 hover:bg-[#EDF2EF]'
               }`}
             >
               <CreditCard className="w-4 h-4" />
-              <span>Insurance Billing & APIs</span>
-              <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${
-                activeTab === 'billing' ? 'bg-blue-500 text-white' : 'bg-slate-200 text-slate-700'
+              <span>EDI Claims & Clearinghouse</span>
+              <span className={`text-[10px] font-mono-clinical font-bold px-1.5 py-0.2 rounded-full ${
+                activeTab === 'billing' ? 'bg-[#184F45] text-emerald-300' : 'bg-slate-200 text-slate-700'
               }`}>
                 {claims.length}
               </span>
@@ -551,14 +563,14 @@ export default function App() {
               onClick={() => setActiveTab('audit')}
               className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold transition-colors cursor-pointer shrink-0 ${
                 activeTab === 'audit'
-                  ? 'bg-blue-600 text-white shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                  ? 'bg-[#0E2C27] text-white shadow-xs'
+                  : 'text-slate-700 hover:text-slate-900 hover:bg-[#EDF2EF]'
               }`}
             >
               <ShieldCheck className="w-4 h-4" />
-              <span>HIPAA Audit Trail</span>
-              <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${
-                activeTab === 'audit' ? 'bg-blue-500 text-white' : 'bg-slate-200 text-slate-700'
+              <span>HIPAA Audit Ledger</span>
+              <span className={`text-[10px] font-mono-clinical font-bold px-1.5 py-0.2 rounded-full ${
+                activeTab === 'audit' ? 'bg-[#184F45] text-emerald-300' : 'bg-slate-200 text-slate-700'
               }`}>
                 {auditLogs.length}
               </span>
@@ -568,7 +580,7 @@ export default function App() {
           <button
             onClick={fetchAllData}
             title="Refresh clinical live data"
-            className="p-2 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
+            className="p-2 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
           >
             <RefreshCw className="w-3.5 h-3.5" />
           </button>
@@ -630,21 +642,27 @@ export default function App() {
           <AuditTrail
             auditLogs={auditLogs}
             currentUser={currentUser}
+            privacyMode={privacyMode}
           />
         )}
       </main>
 
-      {/* Footer with Compliance & Localhost Instructions */}
-      <footer className="bg-white border-t border-slate-200 py-4 mt-auto text-xs text-slate-500">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <span className="font-semibold text-slate-700">St. Jude Smart Hospital EHR</span>
-            <span>•</span>
-            <span>Localhost Node.js + React Enterprise Architecture</span>
+      {/* Institutional Clinical Footer */}
+      <footer className="bg-white border-t border-[#D5DDD9] py-3.5 mt-auto text-xs text-slate-500">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-3">
+          <div className="flex items-center gap-2 font-sans">
+            <span className="font-bold text-slate-800">Kaze Hospital Clinical OS & EHR</span>
+            <span className="text-slate-300">•</span>
+            <span className="text-[11px] text-slate-600 font-mono-clinical">NODE: KZ-METRO-04 / ADULT TERTIARY</span>
+            <span className="text-slate-300">•</span>
+            <span className="text-[11px] text-emerald-800 font-mono-clinical font-semibold bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+              HIPAA § 164.312 AES-256-GCM ACTIVE
+            </span>
           </div>
-          <div className="text-[11px] text-slate-400 flex items-center gap-3">
-            <span>To run locally in VSCode: <code className="bg-slate-100 px-1.5 py-0.5 rounded font-mono text-slate-700">npm install && npm run dev</code></span>
-            <span>•</span>
+
+          <div className="text-[11px] text-slate-500 flex items-center gap-2.5 font-mono-clinical">
+            <span>VSCode Localhost: <code className="bg-[#EDF2EF] text-[#0E2C27] px-1.5 py-0.5 rounded font-mono font-semibold">npm run dev</code></span>
+            <span className="text-slate-300">•</span>
             <span>Port: 3000</span>
           </div>
         </div>

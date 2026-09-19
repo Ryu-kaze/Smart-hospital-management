@@ -1,6 +1,6 @@
 {
-  "name": "Smart Hospital Management and Patient Record System",
-  "description": "HIPAA-compliant hospital management system featuring real-time bed tracking, encrypted medical history access, automated appointment scheduling, and insurance billing integration.",
+  "name": "Kaze Hospital Management and Patient Record System",
+  "description": "HIPAA-compliant Kaze Hospital management and clinical EHR system featuring real-time bed tracking, AES-256 encrypted medical records, automated triage scheduling, and EDI insurance billing integration.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

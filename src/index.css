@@ -2,22 +2,74 @@
 
 @layer base {
   body {
-    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-    color: #0f172a;
-    background-color: #f8fafc;
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    color: #121c1a;
+    background-color: #f3f5f4;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 }
 
-/* Privacy shield overlay for HIPAA compliance */
-.phi-blur {
-  filter: blur(8px);
-  user-select: none;
-  pointer-events: none;
-  transition: filter 0.2s ease;
+/* Institutional Serif Accent */
+.font-serif-clinical {
+  font-family: 'Newsreader', Georgia, serif;
 }
 
-.phi-masked {
-  letter-spacing: 0.15em;
+.font-mono-clinical {
   font-family: 'JetBrains Mono', monospace;
 }
 
+/* Privacy shield overlay for HIPAA compliance (zero leak blur) */
+.phi-blur {
+  filter: blur(7px);
+  user-select: none;
+  pointer-events: none;
+  transition: filter 0.15s ease-in-out;
+}
+
+.phi-masked {
+  letter-spacing: 0.18em;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* Clinical Telemetry & Waveform Animation */
+@keyframes ecg-sweep {
+  0% { stroke-dashoffset: 600; }
+  100% { stroke-dashoffset: 0; }
+}
+
+.animate-ecg {
+  stroke-dasharray: 600;
+  animation: ecg-sweep 2.8s linear infinite;
+}
+
+/* Subtle micro-grid for medical graphs & telemetry */
+.bg-clinical-grid {
+  background-size: 20px 20px;
+  background-image: 
+    linear-gradient(to right, rgba(14, 44, 39, 0.04) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(14, 44, 39, 0.04) 1px, transparent 1px);
+}
+
+.bg-clinical-grid-dark {
+  background-size: 16px 16px;
+  background-image: 
+    linear-gradient(to right, rgba(34, 197, 94, 0.06) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(34, 197, 94, 0.06) 1px, transparent 1px);
+}
+
+/* Custom clinical scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #edf1ef;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5d1;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a39e;
+}

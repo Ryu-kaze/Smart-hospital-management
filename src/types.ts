@@ -43,6 +43,8 @@ export interface Bed {
   id: string;
   bedNumber: string; // e.g. "ICU-04"
   department: WardDepartment;
+  ward?: string;
+  bedType?: string;
   roomNumber: string;
   floor: number;
   status: BedStatus;
@@ -160,7 +162,10 @@ export interface Appointment {
   patientMrn: string;
   doctorName: string;
   specialty: string;
+  department?: string;
   dateTime: string;
+  date?: string;
+  time?: string;
   durationMinutes: number;
   urgency: AppointmentUrgency;
   reasonForVisit: string;
@@ -253,6 +258,8 @@ export interface AuditLog {
   ipAddress: string;
   hashSignature: string; // Simulated SHA-256 tamper-evident integrity hash
 }
+
+export type AuditLogEntry = AuditLog;
 
 export interface HospitalStats {
   totalBeds: number;

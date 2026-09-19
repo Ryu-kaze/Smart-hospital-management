@@ -1,17 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { 
   ShieldCheck, 
+  ShieldAlert, 
   Lock, 
   Eye, 
   EyeOff, 
+  Clock, 
   AlertTriangle, 
+  ChevronDown, 
   UserCheck, 
-  Activity, 
-  Key, 
-  Hospital,
-  ChevronDown
+  Activity,
+  Radio,
+  Building2,
+  Stethoscope
 } from 'lucide-react';
-import { UserProfile, UserRole } from '../types';
+import { UserProfile } from '../types';
 import { SYSTEM_USERS } from '../data/mockUsers';
 
 interface HeaderProps {
@@ -33,214 +36,220 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenBreakGlass,
   secondsUntilLock
 }) => {
-  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
+  const [currentTime, setCurrentTime] = useState<string>('');
 
-  // Format lock timer mm:ss
-  const formatTimer = (sec: number) => {
-    const m = Math.floor(sec / 60);
-    const s = sec % 60;
-    return `${m}:${s < 10 ? '0' : ''}${s}`;
-  };
+  useEffect(() => {
+    const updateTime = () => {
+      const now = new Date();
+      setCurrentTime(
+        now.toLocaleTimeString('en-US', {
+          hour12: false,
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit'
+        })
+      );
+    };
+    updateTime();
+    const interval = setInterval(updateTime, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
-  const getRoleBadgeColor = (role: UserRole) => {
-    switch (role) {
-      case 'doctor':
-        return 'bg-blue-50 text-blue-700 border-blue-200';
-      case 'nurse':
-        return 'bg-emerald-50 text-emerald-700 border-emerald-200';
-      case 'billing':
-        return 'bg-amber-50 text-amber-700 border-amber-200';
-      case 'admin':
-        return 'bg-purple-50 text-purple-700 border-purple-200';
-      case 'patient':
-        return 'bg-slate-100 text-slate-700 border-slate-300';
-      default:
-        return 'bg-gray-100 text-gray-700 border-gray-200';
-    }
+  const formatLockTime = (secs: number) => {
+    const mins = Math.floor(secs / 60);
+    const remainder = secs % 60;
+    return `${mins}:${remainder.toString().padStart(2, '0')}`;
   };
 
   return (
-    <header className="sticky top-0 z-40 bg-white border-b border-slate-200 shadow-xs">
-      {/* HIPAA Compliance & Security Banner */}
-      <div className="bg-slate-900 text-slate-300 text-xs px-4 py-1.5 flex flex-wrap items-center justify-between gap-2 border-b border-slate-800">
-        <div className="flex items-center gap-3">
-          <span className="flex items-center gap-1.5 text-emerald-400 font-medium">
-            <ShieldCheck className="w-3.5 h-3.5" />
-            HIPAA Security Rule Active
-          </span>
-          <span className="hidden sm:inline text-slate-500">•</span>
-          <span className="hidden sm:flex items-center gap-1 text-slate-300">
-            <Key className="w-3 h-3 text-cyan-400" />
-            AES-256-GCM End-to-End EHR Encryption
-          </span>
-          <span className="hidden md:inline text-slate-500">•</span>
-          <span className="hidden md:inline text-slate-400">
-            Audit Trail Logging Enabled (NIST SP 800-66)
-          </span>
+    <header className="bg-[#0E2C27] text-white border-b border-[#18443D] sticky top-0 z-40 select-none shadow-sm">
+      {/* Top Clinical Compliance & Telemetry Ribbon */}
+      <div className="bg-[#091F1C] px-4 py-1 text-[11px] border-b border-[#123630] flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-3 font-mono-clinical text-slate-300">
+          <div className="flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 -ml-3"></span>
+            <span className="text-emerald-400 font-semibold tracking-wider">KAZE-NET SECURE</span>
+          </div>
+          <span className="text-slate-600">•</span>
+          <span>NODE: <strong className="text-slate-200">L3-CLINICAL-WS08</strong></span>
+          <span className="text-slate-600 hidden sm:inline">•</span>
+          <span className="hidden sm:inline">HIPAA § 164.312 ACTIVE</span>
+          <span className="text-slate-600 hidden md:inline">•</span>
+          <span className="hidden md:inline">ENCRYPTION: <strong className="text-emerald-300">AES-256-GCM (FIPS 140-3)</strong></span>
         </div>
 
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5 bg-slate-800 px-2.5 py-0.5 rounded-full text-slate-300">
-            <Lock className="w-3 h-3 text-amber-400" />
-            <span>Auto-Lock: <strong className="text-white font-mono">{formatTimer(secondsUntilLock)}</strong></span>
+        <div className="flex items-center gap-4 text-xs font-mono-clinical">
+          <div className="flex items-center gap-1.5 text-slate-300">
+            <Clock className="w-3 h-3 text-[#2DD4BF]" />
+            <span className="tracking-widest font-semibold text-slate-100">{currentTime || '12:00:00'}</span>
+            <span className="text-[9px] text-[#2DD4BF] font-sans uppercase font-bold tracking-wider">LOCAL</span>
           </div>
 
-          <button
-            id="lock-terminal-btn"
-            onClick={onLockScreen}
-            title="Lock terminal immediately"
-            className="hover:text-white text-slate-400 flex items-center gap-1 cursor-pointer transition-colors"
-          >
-            <Lock className="w-3 h-3" />
-            <span>Lock</span>
-          </button>
+          <div className="flex items-center gap-1.5 bg-[#123832] px-2 py-0.5 rounded text-[11px] border border-[#1A4B43]">
+            <span className="text-slate-400">Idle Lock:</span>
+            <span className={`font-bold font-mono-clinical ${secondsUntilLock < 30 ? 'text-rose-400 animate-pulse' : 'text-emerald-300'}`}>
+              {formatLockTime(secondsUntilLock)}
+            </span>
+          </div>
         </div>
       </div>
 
-      {/* Primary Navigation Bar */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between gap-4">
-        {/* Hospital Branding */}
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-xs">
-            <Hospital className="w-5 h-5" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-lg font-bold text-slate-900 tracking-tight leading-none">
-                St. Jude Smart Hospital
-              </h1>
-              <span className="bg-blue-100 text-blue-800 text-[10px] font-semibold px-2 py-0.5 rounded-full border border-blue-200">
-                EHR Core v2.4
-              </span>
+      {/* Primary Institution Header */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2.5">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+          
+          {/* Institutional Branding: Kaze Hospital */}
+          <div className="flex items-center gap-3">
+            {/* Distinctive Kaze Clinical Emblem */}
+            <div className="w-10 h-10 rounded-lg bg-[#14443C] border border-[#25665B] flex items-center justify-center shrink-0 shadow-inner">
+              <div className="relative flex items-center justify-center">
+                <span className="text-emerald-300 font-bold text-base tracking-tighter">風</span>
+                <span className="absolute -top-1 -right-2 text-[9px] text-teal-400 font-mono-clinical font-black">+</span>
+              </div>
             </div>
-            <p className="text-xs text-slate-500 mt-0.5 font-medium">
-              Patient Record & Real-Time Clinical Operations System
-            </p>
+
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-base font-bold text-white tracking-tight flex items-center gap-1.5 font-sans">
+                  <span>Kaze Hospital</span>
+                  <span className="text-[10px] font-mono-clinical font-normal px-1.5 py-0.2 rounded bg-[#164940] text-emerald-300 border border-[#24675B]">
+                    EHR CORE
+                  </span>
+                </h1>
+              </div>
+              <p className="text-[11px] text-slate-300 tracking-wide font-sans">
+                Tertiary Medical Center & Emergency Care System • Ward 3 Command
+              </p>
+            </div>
           </div>
-        </div>
 
-        {/* Action Controls & Role Switcher */}
-        <div className="flex items-center gap-2 sm:gap-3">
-          {/* Privacy Shield Toggle (Blur sensitive PHI on screen) */}
-          <button
-            id="privacy-shield-btn"
-            onClick={onTogglePrivacy}
-            className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg border transition-all cursor-pointer ${
-              privacyMode 
-                ? 'bg-amber-500 text-white border-amber-600 shadow-xs'
-                : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-300'
-            }`}
-            title="Privacy Shield masks Protected Health Information (PHI) from shoulder-surfing in public wards"
-          >
-            {privacyMode ? (
-              <>
-                <EyeOff className="w-4 h-4" />
-                <span className="hidden sm:inline">Privacy Shield: ON</span>
-              </>
-            ) : (
-              <>
-                <Eye className="w-4 h-4 text-slate-500" />
-                <span className="hidden sm:inline">Privacy Shield</span>
-              </>
-            )}
-          </button>
+          {/* Clinical Controls & Session Role */}
+          <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
+            {/* Privacy Shield Toggle */}
+            <button
+              id="privacy-shield-toggle-btn"
+              onClick={onTogglePrivacy}
+              className={`py-1.5 px-3 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer border ${
+                privacyMode
+                  ? 'bg-amber-500/20 border-amber-400/50 text-amber-200'
+                  : 'bg-[#14443C] hover:bg-[#1A544A] border-[#25665B] text-slate-200'
+              }`}
+              title="Toggle Screen Privacy Shield (Blurs all Protected Health Information)"
+            >
+              {privacyMode ? (
+                <>
+                  <EyeOff className="w-3.5 h-3.5 text-amber-300" />
+                  <span>Privacy Shield: <strong>ON</strong></span>
+                </>
+              ) : (
+                <>
+                  <Eye className="w-3.5 h-3.5 text-slate-400" />
+                  <span>Privacy Shield</span>
+                </>
+              )}
+            </button>
 
-          {/* Break Glass Protocol Button */}
-          {currentUser.canBreakGlass && (
+            {/* Emergency Break-Glass Button */}
             <button
               id="break-glass-trigger-btn"
               onClick={onOpenBreakGlass}
-              className="flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white border border-red-700 transition-all cursor-pointer shadow-xs"
-              title="Emergency Break-Glass Access for critical patient care"
+              className="py-1.5 px-3 rounded-lg text-xs font-bold bg-rose-950/80 hover:bg-rose-900 border border-rose-700/80 text-rose-200 flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs"
+              title="Emergency Protocol: Override access controls with immediate compliance audit logging"
             >
-              <AlertTriangle className="w-4 h-4 animate-pulse" />
-              <span className="hidden sm:inline">Break Glass</span>
+              <AlertTriangle className="w-3.5 h-3.5 text-rose-400" />
+              <span>Break Glass</span>
             </button>
-          )}
 
-          {/* User & Role Switcher Dropdown */}
-          <div className="relative">
+            {/* Manual Workstation Lock */}
             <button
-              id="role-switcher-dropdown-btn"
-              onClick={() => setDropdownOpen(!dropdownOpen)}
-              className="flex items-center gap-2.5 p-1.5 sm:px-3 sm:py-2 rounded-lg border border-slate-200 hover:border-slate-300 bg-white hover:bg-slate-50 transition-colors text-left cursor-pointer"
+              id="workstation-lock-btn"
+              onClick={onLockScreen}
+              className="py-1.5 px-2.5 rounded-lg text-xs font-medium bg-[#14443C] hover:bg-[#1A544A] border border-[#25665B] text-slate-200 transition-colors cursor-pointer flex items-center gap-1"
+              title="Lock terminal immediately"
             >
-              <div className="w-8 h-8 rounded-full bg-slate-800 text-white flex items-center justify-center font-bold text-xs uppercase">
-                {currentUser.name.split(' ').map(n => n[0]).slice(0, 2).join('')}
-              </div>
-              <div className="hidden md:block">
-                <div className="text-xs font-bold text-slate-900 leading-tight">
-                  {currentUser.name}
-                </div>
-                <div className="flex items-center gap-1.5 mt-0.5">
-                  <span className={`text-[10px] font-semibold px-1.5 py-0.2 rounded border ${getRoleBadgeColor(currentUser.role)}`}>
-                    {currentUser.role.toUpperCase()}
-                  </span>
-                  <span className="text-[10px] text-slate-500 truncate max-w-[120px]">
-                    {currentUser.department}
-                  </span>
-                </div>
-              </div>
-              <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+              <Lock className="w-3.5 h-3.5 text-slate-400" />
+              <span className="hidden sm:inline">Lock</span>
             </button>
 
-            {dropdownOpen && (
-              <div 
-                className="absolute right-0 mt-2 w-72 bg-white rounded-xl shadow-xl border border-slate-200 py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150"
-                onMouseLeave={() => setDropdownOpen(false)}
+            {/* User Profile / Clinical Role Switcher */}
+            <div className="relative">
+              <button
+                id="user-profile-menu-btn"
+                onClick={() => setIsUserDropdownOpen(!isUserDropdownOpen)}
+                className="py-1 px-2.5 rounded-lg bg-[#14443C] hover:bg-[#1A544A] border border-[#25665B] text-left flex items-center gap-2 transition-colors cursor-pointer"
               >
-                <div className="px-3 py-2 border-b border-slate-100">
-                  <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                    Switch Clinical Identity (RBAC)
-                  </p>
-                  <p className="text-xs text-slate-500 mt-0.5">
-                    Select a role to test specific HIPAA permissions & security boundaries.
-                  </p>
+                <div className="w-7 h-7 rounded-md bg-[#1D5C52] text-emerald-200 flex items-center justify-center font-bold text-xs border border-[#2C786B]">
+                  {currentUser.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
                 </div>
+                <div className="hidden sm:block leading-tight pr-1">
+                  <div className="text-xs font-bold text-white flex items-center gap-1">
+                    <span>{currentUser.name}</span>
+                    <span className="text-[10px] text-emerald-400 font-mono-clinical uppercase font-semibold">
+                      [{currentUser.role}]
+                    </span>
+                  </div>
+                  <div className="text-[10px] text-slate-300">
+                    {currentUser.department}
+                  </div>
+                </div>
+                <ChevronDown className="w-3 h-3 text-slate-400" />
+              </button>
 
-                <div className="py-1">
-                  {SYSTEM_USERS.map((user) => (
-                    <button
-                      key={user.id}
-                      id={`switch-user-${user.id}`}
-                      onClick={() => {
-                        onUserChange(user);
-                        setDropdownOpen(false);
-                      }}
-                      className={`w-full text-left px-3 py-2.5 flex items-start gap-2.5 hover:bg-slate-50 transition-colors cursor-pointer ${
-                        currentUser.id === user.id ? 'bg-blue-50/70 border-l-3 border-blue-600' : ''
-                      }`}
-                    >
-                      <div className="w-7 h-7 rounded-full bg-slate-700 text-white flex items-center justify-center font-bold text-[10px] shrink-0 mt-0.5">
-                        {user.name.split(' ').map(n => n[0]).slice(0, 2).join('')}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs font-bold text-slate-900 truncate">
-                            {user.name}
-                          </span>
-                          <span className={`text-[9px] font-semibold px-1 rounded border ${getRoleBadgeColor(user.role)}`}>
-                            {user.role}
-                          </span>
-                        </div>
-                        <div className="text-[11px] text-slate-500 truncate mt-0.5">
-                          {user.title}
-                        </div>
-                        <div className="text-[10px] text-slate-400 mt-0.5 flex items-center gap-2">
-                          <span>{user.licenseNumber}</span>
-                          <span>•</span>
-                          <span>{user.department}</span>
-                        </div>
-                      </div>
-                    </button>
-                  ))}
-                </div>
+              {/* Dropdown Menu */}
+              {isUserDropdownOpen && (
+                <div className="absolute right-0 mt-2 w-72 bg-white rounded-xl shadow-2xl border border-slate-200 text-slate-900 py-2 z-50 animate-in fade-in zoom-in-95 duration-150">
+                  <div className="px-3.5 py-2 border-b border-slate-100">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block font-sans">
+                      Active Shift Identity (RBAC Switcher)
+                    </span>
+                    <p className="text-[11px] text-slate-500 mt-0.5">
+                      Switch clinical credential to evaluate permission gates
+                    </p>
+                  </div>
 
-                <div className="px-3 pt-2 pb-1 border-t border-slate-100 text-[11px] text-slate-400">
-                  Current Session: NIST 800-53 Authenticated
+                  <div className="py-1">
+                    {SYSTEM_USERS.map((u) => {
+                      const isSelected = u.id === currentUser.id;
+                      return (
+                        <button
+                          key={u.id}
+                          id={`switch-user-${u.id}`}
+                          onClick={() => {
+                            onUserChange(u);
+                            setIsUserDropdownOpen(false);
+                          }}
+                          className={`w-full text-left px-3.5 py-2 flex items-center justify-between transition-colors cursor-pointer ${
+                            isSelected ? 'bg-emerald-50 text-emerald-950 font-bold' : 'hover:bg-slate-50 text-slate-700'
+                          }`}
+                        >
+                          <div>
+                            <div className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                              <span>{u.name}</span>
+                              {isSelected && (
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
+                              )}
+                            </div>
+                            <div className="text-[11px] text-slate-500">
+                              {u.title} • <span className="text-emerald-700 font-medium">{u.department}</span>
+                            </div>
+                          </div>
+
+                          <span className="text-[10px] font-mono-clinical uppercase font-semibold px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200">
+                            {u.role}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <div className="px-3.5 py-2 bg-slate-50 border-t border-slate-100 text-[10px] text-slate-500 font-mono-clinical">
+                    ID: {currentUser.id} • STATION: L3-08
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </div>
       </div>

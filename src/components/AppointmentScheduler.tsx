@@ -1,29 +1,34 @@
 import React, { useState } from 'react';
 import { 
-  Calendar as CalendarIcon, 
+  Calendar, 
   Clock, 
-  Sparkles, 
-  UserCheck, 
-  CheckCircle2, 
-  AlertTriangle, 
-  Plus, 
-  Search, 
+  User, 
   Stethoscope, 
-  Building2,
-  CalendarCheck,
+  Plus, 
+  Zap, 
+  AlertCircle, 
+  CheckCircle2, 
+  Activity, 
+  Building2, 
+  DoorOpen, 
   ChevronRight,
-  Filter
+  Filter,
+  Search,
+  SlidersHorizontal,
+  CalendarDays
 } from 'lucide-react';
-import { Appointment, AppointmentStatus, AppointmentUrgency, Patient, UserProfile } from '../types';
+import { Appointment, Patient, UserProfile } from '../types';
 
 interface AppointmentSchedulerProps {
   appointments: Appointment[];
   patients: Patient[];
   currentUser: UserProfile;
   privacyMode: boolean;
-  onAutoSchedule: (patientId: string, symptoms: string, urgency: string, doctor?: string) => Promise<any>;
-  onManualSchedule: (data: any) => Promise<void>;
-  onUpdateStatus: (appointmentId: string, status: AppointmentStatus) => Promise<void>;
+  onAutoSchedule?: (triageData: any) => Promise<any>;
+  onManualSchedule?: (appointmentData: any) => Promise<void>;
+  onBookAppointment?: (appointmentData: any) => Promise<void>;
+  onAutomatedTriage?: (triageData: any) => Promise<any>;
+  onUpdateStatus: (appointmentId: string, status: any) => Promise<void>;
 }
 
 export const AppointmentScheduler: React.FC<AppointmentSchedulerProps> = ({
@@ -33,184 +38,192 @@ export const AppointmentScheduler: React.FC<AppointmentSchedulerProps> = ({
   privacyMode,
   onAutoSchedule,
   onManualSchedule,
+  onBookAppointment,
+  onAutomatedTriage,
   onUpdateStatus
 }) => {
-  const [activeTab, setActiveTab] = useState<'list' | 'auto-triage' | 'manual'>('list');
-  const [statusFilter, setStatusFilter] = useState<string>('All');
-  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [activeTab, setActiveTab] = useState<'schedule' | 'triage' | 'new'>('schedule');
+  const [filterDepartment, setFilterDepartment] = useState<string>('All');
+  const [filterStatus, setFilterStatus] = useState<string>('All');
 
-  // Auto-Triage Form State
+  // Automated triage state
   const [triagePatientId, setTriagePatientId] = useState<string>(patients[0]?.id || '');
-  const [symptoms, setSymptoms] = useState<string>('');
-  const [reportedUrgency, setReportedUrgency] = useState<AppointmentUrgency>('Urgent');
-  const [preferredDoctor, setPreferredDoctor] = useState<string>('');
-  const [isAutoScheduling, setIsAutoScheduling] = useState(false);
+  const [chiefComplaint, setChiefComplaint] = useState<string>('');
+  const [triageSymptoms, setTriageSymptoms] = useState<string>('');
+  const [isTriaging, setIsTriaging] = useState<boolean>(false);
   const [triageResult, setTriageResult] = useState<any | null>(null);
 
-  // Manual Form State
-  const [manualPatientId, setManualPatientId] = useState<string>(patients[0]?.id || '');
-  const [manualDoctor, setManualDoctor] = useState<string>('Dr. Evelyn Reed');
-  const [manualSpecialty, setManualSpecialty] = useState<string>('Cardiology');
-  const [manualDateTime, setManualDateTime] = useState<string>('2026-09-18 10:00');
-  const [manualUrgency, setManualUrgency] = useState<AppointmentUrgency>('Routine');
-  const [manualReason, setManualReason] = useState<string>('');
-  const [manualRoom, setManualRoom] = useState<string>('Consult Room 102');
-  const [isManualSubmitting, setIsManualSubmitting] = useState(false);
+  // Manual booking state
+  const [bookPatientId, setBookPatientId] = useState<string>(patients[0]?.id || '');
+  const [bookDoctor, setBookDoctor] = useState<string>('Dr. Evelyn Reed, MD');
+  const [bookDepartment, setBookDepartment] = useState<string>('Cardiology');
+  const [bookDate, setBookDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [bookTime, setBookTime] = useState<string>('14:30');
+  const [bookReason, setBookReason] = useState<string>('Routine follow-up');
+  const [bookRoom, setBookRoom] = useState<string>('Clinic 204');
+  const [isBooking, setIsBooking] = useState<boolean>(false);
+
+  const departments = ['All', 'Cardiology', 'Pulmonology', 'Neurology', 'Internal Medicine', 'General Surgery', 'Orthopedics'];
 
   const filteredAppointments = appointments.filter((apt) => {
-    const matchesStatus = statusFilter === 'All' || apt.status === statusFilter;
-    const matchesSearch = 
-      apt.patientName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      apt.patientMrn.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      apt.doctorName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      apt.specialty.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesStatus && matchesSearch;
+    const matchesDept = filterDepartment === 'All' || apt.department === filterDepartment;
+    const matchesStatus = filterStatus === 'All' || apt.status === filterStatus;
+    return matchesDept && matchesStatus;
   });
 
-  const handleAutoScheduleSubmit = async (e: React.FormEvent) => {
+  const handleRunTriage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!triagePatientId || !symptoms.trim()) return;
+    if (!chiefComplaint.trim()) return;
     try {
-      setIsAutoScheduling(true);
-      const res = await onAutoSchedule(triagePatientId, symptoms, reportedUrgency, preferredDoctor || undefined);
-      setTriageResult(res);
-      setSymptoms('');
-    } finally {
-      setIsAutoScheduling(false);
-    }
-  };
-
-  const handleManualSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!manualPatientId || !manualDateTime || !manualReason.trim()) return;
-    try {
-      setIsManualSubmitting(true);
-      await onManualSchedule({
-        patientId: manualPatientId,
-        doctorName: manualDoctor,
-        specialty: manualSpecialty,
-        dateTime: manualDateTime,
-        urgency: manualUrgency,
-        reasonForVisit: manualReason,
-        room: manualRoom
+      setIsTriaging(true);
+      const triageFn = onAutoSchedule || onAutomatedTriage;
+      if (!triageFn) return;
+      const res = await triageFn({
+        patientId: triagePatientId,
+        chiefComplaint,
+        symptoms: triageSymptoms.split(',').map(s => s.trim()).filter(Boolean)
       });
-      setActiveTab('list');
-      setManualReason('');
+      setTriageResult(res);
     } finally {
-      setIsManualSubmitting(false);
+      setIsTriaging(false);
     }
   };
 
-  const getUrgencyBadge = (urgency: AppointmentUrgency) => {
-    switch (urgency) {
-      case 'Emergency':
-        return <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-100 text-red-800 border border-red-200">Emergency</span>;
-      case 'Urgent':
-        return <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200">Urgent</span>;
-      case 'Routine':
-        return <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">Routine</span>;
+  const handleAcceptTriageBooking = async () => {
+    if (!triageResult) return;
+    const bookFn = onManualSchedule || onBookAppointment;
+    if (bookFn) {
+      await bookFn({
+        patientId: triageResult.suggestedAppointment.patientId,
+        doctorName: triageResult.suggestedAppointment.doctorName,
+        department: triageResult.suggestedAppointment.department,
+        date: triageResult.suggestedAppointment.date,
+        time: triageResult.suggestedAppointment.time,
+        reasonForVisit: triageResult.suggestedAppointment.reasonForVisit,
+        room: triageResult.suggestedAppointment.room,
+        triagePriorityScore: triageResult.priorityScore,
+        scheduledMethod: 'Automated'
+      });
     }
+    setTriageResult(null);
+    setChiefComplaint('');
+    setTriageSymptoms('');
+    setActiveTab('schedule');
   };
 
-  const getStatusBadge = (status: AppointmentStatus) => {
-    switch (status) {
-      case 'Scheduled':
-        return <span className="text-[11px] font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded">Scheduled</span>;
-      case 'Checked-In':
-        return <span className="text-[11px] font-semibold text-purple-700 bg-purple-50 px-2 py-0.5 rounded">Checked-In</span>;
-      case 'In-Consultation':
-        return <span className="text-[11px] font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded">In-Consultation</span>;
-      case 'Completed':
-        return <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded">Completed</span>;
-      case 'Cancelled':
-        return <span className="text-[11px] font-semibold text-slate-500 bg-slate-100 px-2 py-0.5 rounded">Cancelled</span>;
+  const handleManualBooking = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      setIsBooking(true);
+      const bookFn = onManualSchedule || onBookAppointment;
+      if (bookFn) {
+        await bookFn({
+          patientId: bookPatientId,
+          doctorName: bookDoctor,
+          department: bookDepartment,
+          date: bookDate,
+          time: bookTime,
+          reasonForVisit: bookReason,
+          room: bookRoom,
+          triagePriorityScore: 5,
+          scheduledMethod: 'Manual'
+        });
+      }
+      setActiveTab('schedule');
+    } finally {
+      setIsBooking(false);
     }
   };
 
   return (
-    <div className="space-y-6">
-      {/* Top Banner & Tab Navigation */}
-      <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-3">
+    <div className="space-y-5">
+      {/* Ribbon Bar */}
+      <div className="bg-white rounded-xl border border-[#D5DDD9] p-4 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h2 className="text-base font-bold text-slate-900">
-            Intelligent Appointment Scheduling & Triage System
-          </h2>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Automated algorithm coordinates provider availability, acuity triage score, and clinic room allocation.
+          <div className="flex items-center gap-2">
+            <h2 className="text-base font-bold text-slate-900 tracking-tight font-sans">
+              Kaze Hospital Clinic Operations & Triage Dispatch
+            </h2>
+            <span className="text-[10px] font-mono-clinical font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-900 border border-emerald-300">
+              ESI LEVEL 1-5 ENGINE
+            </span>
+          </div>
+          <p className="text-xs text-slate-500 mt-0.5 font-sans">
+            Algorithm-driven acuity scoring, emergency room diversion, and automated clinical schedule coordination.
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        {/* View Switcher Tabs */}
+        <div className="flex items-center gap-1.5 bg-[#F2F5F4] p-1 rounded-lg border border-[#E2E8E5] shrink-0">
           <button
             id="view-schedule-tab"
-            onClick={() => setActiveTab('list')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
-              activeTab === 'list'
-                ? 'bg-blue-600 text-white shadow-xs'
-                : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
+            onClick={() => setActiveTab('schedule')}
+            className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-colors cursor-pointer flex items-center gap-1.5 ${
+              activeTab === 'schedule'
+                ? 'bg-[#0E2C27] text-white shadow-xs'
+                : 'text-slate-600 hover:text-slate-900'
             }`}
           >
-            All Appointments ({appointments.length})
+            <CalendarDays className="w-3.5 h-3.5" />
+            <span>Master Schedule ({appointments.length})</span>
           </button>
 
           <button
-            id="auto-triage-tab"
-            onClick={() => {
-              setActiveTab('auto-triage');
-              setTriageResult(null);
-            }}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5 ${
-              activeTab === 'auto-triage'
-                ? 'bg-purple-600 text-white shadow-xs'
-                : 'bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200'
+            id="view-triage-tab"
+            onClick={() => setActiveTab('triage')}
+            className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-colors cursor-pointer flex items-center gap-1.5 ${
+              activeTab === 'triage'
+                ? 'bg-[#0E2C27] text-white shadow-xs'
+                : 'text-slate-600 hover:text-slate-900'
             }`}
           >
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>AI Automated Triage</span>
+            <Zap className="w-3.5 h-3.5 text-emerald-400" />
+            <span>Automated Triage Engine</span>
           </button>
 
           <button
-            id="manual-book-tab"
-            onClick={() => setActiveTab('manual')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer flex items-center gap-1 ${
-              activeTab === 'manual'
-                ? 'bg-blue-600 text-white shadow-xs'
-                : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
+            id="view-manual-booking-tab"
+            onClick={() => setActiveTab('new')}
+            className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-colors cursor-pointer flex items-center gap-1.5 ${
+              activeTab === 'new'
+                ? 'bg-[#0E2C27] text-white shadow-xs'
+                : 'text-slate-600 hover:text-slate-900'
             }`}
           >
             <Plus className="w-3.5 h-3.5" />
-            <span>Manual Booking</span>
+            <span>Manual Slot Booking</span>
           </button>
         </div>
       </div>
 
-      {/* VIEW 1: APPOINTMENTS LIST & STATUS MANAGEMENT */}
-      {activeTab === 'list' && (
+      {/* TAB 1: MASTER SCHEDULE */}
+      {activeTab === 'schedule' && (
         <div className="space-y-4">
-          {/* Filter and Search Bar */}
-          <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-xs flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-            <div className="relative flex-1">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-              <input
-                id="search-appointments-input"
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search by patient name, MRN, doctor, or specialty..."
-                className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-9 pr-4 py-2 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-hidden focus:border-blue-500"
-              />
+          {/* Department & Status Filters */}
+          <div className="bg-white rounded-xl border border-[#D5DDD9] p-3 shadow-xs flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-1.5 overflow-x-auto">
+              <span className="text-xs text-slate-400 font-mono-clinical mr-1">DEPT:</span>
+              {departments.map((dept) => (
+                <button
+                  key={dept}
+                  onClick={() => setFilterDepartment(dept)}
+                  className={`px-2.5 py-1 rounded text-xs font-medium cursor-pointer transition-colors ${
+                    filterDepartment === dept
+                      ? 'bg-[#0E2C27] text-white'
+                      : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                  }`}
+                >
+                  {dept}
+                </button>
+              ))}
             </div>
 
             <div className="flex items-center gap-2">
-              <span className="text-xs font-semibold text-slate-500 flex items-center gap-1 shrink-0">
-                <Filter className="w-3.5 h-3.5" />
-                Filter:
-              </span>
+              <span className="text-xs text-slate-400 font-mono-clinical">STATUS:</span>
               <select
-                id="appointment-status-select"
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-700 focus:outline-hidden focus:border-blue-500"
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value)}
+                className="bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1 text-xs text-slate-700 focus:outline-hidden focus:border-[#0E2C27]"
               >
                 <option value="All">All Statuses</option>
                 <option value="Scheduled">Scheduled</option>
@@ -222,72 +235,104 @@ export const AppointmentScheduler: React.FC<AppointmentSchedulerProps> = ({
             </div>
           </div>
 
-          {/* Appointments Table / Cards */}
-          <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
-            <div className="divide-y divide-slate-100">
-              {filteredAppointments.length === 0 ? (
-                <div className="p-8 text-center text-slate-400 text-xs">
-                  No appointments found matching your search.
-                </div>
-              ) : (
-                filteredAppointments.map((apt) => (
-                  <div 
-                    key={apt.id} 
-                    id={`appointment-card-${apt.id}`}
-                    className="p-4 hover:bg-slate-50 transition-colors flex flex-col md:flex-row md:items-center justify-between gap-4"
-                  >
-                    <div className="min-w-0 flex-1 space-y-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="font-mono text-xs font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded border border-blue-100">
-                          {apt.dateTime}
-                        </span>
-                        <span className={`font-bold text-sm text-slate-900 ${privacyMode ? 'phi-blur' : ''}`}>
-                          {apt.patientName}
-                        </span>
-                        <span className="text-xs font-mono text-slate-400">
-                          ({privacyMode ? 'MRN-••••••' : apt.patientMrn})
-                        </span>
-                        {getUrgencyBadge(apt.urgency)}
-                        {getStatusBadge(apt.status)}
+          {/* Appointments Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filteredAppointments.map((apt) => {
+              const patient = patients.find(p => p.id === apt.patientId);
+
+              return (
+                <div
+                  key={apt.id}
+                  id={`apt-card-${apt.id}`}
+                  className="bg-white rounded-xl border border-[#D5DDD9] p-4 shadow-xs flex flex-col justify-between"
+                >
+                  <div>
+                    {/* Header: Time, Acuity, Status */}
+                    <div className="flex items-center justify-between pb-2.5 border-b border-[#E2E8E5] mb-3">
+                      <div className="flex items-center gap-1.5 text-slate-900 font-mono-clinical font-bold text-xs">
+                        <Clock className="w-3.5 h-3.5 text-[#1D7A68]" />
+                        <span>{apt.time}</span>
+                        <span className="text-slate-400 font-normal">• {apt.date}</span>
                       </div>
 
-                      <div className="text-xs text-slate-600 flex flex-wrap items-center gap-3">
-                        <span className="flex items-center gap-1 font-semibold text-slate-800">
-                          <Stethoscope className="w-3.5 h-3.5 text-blue-500" />
-                          {apt.doctorName}
+                      <div className="flex items-center gap-1.5">
+                        <span className={`text-[10px] font-mono-clinical font-bold px-1.5 py-0.2 rounded ${
+                          apt.triagePriorityScore >= 8 
+                            ? 'bg-rose-100 text-rose-800' 
+                            : apt.triagePriorityScore >= 6 
+                            ? 'bg-amber-100 text-amber-800' 
+                            : 'bg-slate-100 text-slate-700'
+                        }`}>
+                          ESI Score: {apt.triagePriorityScore}
                         </span>
-                        <span>•</span>
-                        <span>{apt.specialty}</span>
-                        <span>•</span>
-                        <span className="text-slate-500">{apt.room}</span>
-                        <span>•</span>
-                        <span className="text-[11px] text-purple-600 font-medium">
-                          Method: {apt.scheduledMethod}
+
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                          apt.status === 'Completed'
+                            ? 'bg-emerald-100 text-emerald-800'
+                            : apt.status === 'In-Consultation'
+                            ? 'bg-blue-100 text-blue-800 animate-pulse'
+                            : apt.status === 'Checked-In'
+                            ? 'bg-purple-100 text-purple-800'
+                            : apt.status === 'Cancelled'
+                            ? 'bg-slate-200 text-slate-500'
+                            : 'bg-slate-100 text-slate-800'
+                        }`}>
+                          {apt.status}
                         </span>
                       </div>
-
-                      <p className="text-xs text-slate-500 italic">
-                        Reason: {apt.reasonForVisit}
-                      </p>
                     </div>
 
-                    {/* Quick Status Modifiers */}
-                    <div className="flex items-center gap-2 shrink-0">
+                    {/* Patient & Room Details */}
+                    <div>
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <div className={`font-bold text-sm text-slate-900 ${privacyMode ? 'phi-blur' : ''}`}>
+                            {apt.patientName}
+                          </div>
+                          <div className="text-[11px] text-slate-500 font-mono-clinical">
+                            {privacyMode ? 'MRN-••••••' : apt.patientMrn}
+                          </div>
+                        </div>
+
+                        <div className="text-right">
+                          <span className="text-[11px] font-mono-clinical text-slate-700 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+                            {apt.room}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="mt-3 bg-[#F8FAF9] p-2.5 rounded-lg border border-[#E2E8E5] text-xs">
+                        <div className="text-slate-500 text-[10px] font-mono-clinical uppercase">REASON FOR VISIT</div>
+                        <p className="text-slate-800 font-medium mt-0.5 line-clamp-2">{apt.reasonForVisit}</p>
+                      </div>
+
+                      <div className="mt-2.5 flex items-center justify-between text-xs text-slate-600">
+                        <span className="font-semibold text-slate-800">{apt.doctorName}</span>
+                        <span className="text-[11px] text-[#1D7A68] font-medium">{apt.department}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Status Progression Workflow */}
+                  <div className="mt-4 pt-3 border-t border-[#E2E8E5] flex items-center justify-between gap-1.5 text-xs">
+                    <span className="text-[10px] text-slate-400 font-mono-clinical uppercase">
+                      {apt.scheduledMethod} Intake
+                    </span>
+
+                    <div className="flex items-center gap-1">
                       {apt.status === 'Scheduled' && (
                         <button
-                          id={`check-in-btn-${apt.id}`}
                           onClick={() => onUpdateStatus(apt.id, 'Checked-In')}
-                          className="px-3 py-1.5 bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 rounded-lg text-xs font-semibold transition-colors cursor-pointer"
+                          className="px-2.5 py-1 bg-purple-50 hover:bg-purple-100 text-purple-800 border border-purple-200 rounded text-xs font-semibold cursor-pointer"
                         >
-                          Check In
+                          Check-In
                         </button>
                       )}
 
                       {apt.status === 'Checked-In' && (
                         <button
-                          id={`start-consult-btn-${apt.id}`}
                           onClick={() => onUpdateStatus(apt.id, 'In-Consultation')}
-                          className="px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 rounded-lg text-xs font-semibold transition-colors cursor-pointer"
+                          className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-800 border border-blue-200 rounded text-xs font-semibold cursor-pointer"
                         >
                           Begin Consult
                         </button>
@@ -295,58 +340,45 @@ export const AppointmentScheduler: React.FC<AppointmentSchedulerProps> = ({
 
                       {apt.status === 'In-Consultation' && (
                         <button
-                          id={`complete-apt-btn-${apt.id}`}
                           onClick={() => onUpdateStatus(apt.id, 'Completed')}
-                          className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition-colors cursor-pointer shadow-xs"
+                          className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded text-xs font-bold cursor-pointer"
                         >
-                          Complete Visit
-                        </button>
-                      )}
-
-                      {apt.status !== 'Completed' && apt.status !== 'Cancelled' && (
-                        <button
-                          id={`cancel-apt-btn-${apt.id}`}
-                          onClick={() => onUpdateStatus(apt.id, 'Cancelled')}
-                          className="px-2.5 py-1.5 text-slate-400 hover:text-red-600 text-xs transition-colors cursor-pointer"
-                          title="Cancel appointment"
-                        >
-                          Cancel
+                          Complete
                         </button>
                       )}
                     </div>
                   </div>
-                ))
-              )}
-            </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
 
-      {/* VIEW 2: AUTOMATED TRIAGE SCHEDULER ENGINE */}
-      {activeTab === 'auto-triage' && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          <div className="lg:col-span-7 bg-white rounded-xl border border-slate-200 p-6 shadow-xs">
-            <div className="flex items-center gap-2 mb-2">
-              <div className="w-8 h-8 rounded-lg bg-purple-100 text-purple-700 flex items-center justify-center font-bold">
-                <Sparkles className="w-4 h-4" />
+      {/* TAB 2: AUTOMATED TRIAGE ENGINE */}
+      {activeTab === 'triage' && (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+          <div className="lg:col-span-6 bg-white rounded-xl border border-[#D5DDD9] p-5 shadow-xs">
+            <div className="flex items-center gap-2 mb-4 pb-3 border-b border-slate-100">
+              <div className="p-2 bg-[#E7F2EE] text-[#0E2C27] rounded-lg">
+                <Zap className="w-5 h-5 text-emerald-600" />
               </div>
               <div>
-                <h3 className="text-base font-bold text-slate-900">
-                  Automated Clinical Triage & Slot Matching
+                <h3 className="text-base font-bold text-slate-900 font-sans">
+                  Automated Clinical Triage & Specialist Matcher
                 </h3>
-                <p className="text-xs text-slate-500">
-                  Synthesizes chief complaint, urgency level, and specialty doctor capacity.
+                <p className="text-xs text-slate-500 font-sans">
+                  Analyzes symptoms to compute Emergency Severity Index (ESI) priority and allocate consultation slots.
                 </p>
               </div>
             </div>
 
-            <form onSubmit={handleAutoScheduleSubmit} className="space-y-4 mt-5">
+            <form onSubmit={handleRunTriage} className="space-y-4">
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Select Patient
+                  Select Patient Under Evaluation
                 </label>
                 <select
-                  id="triage-patient-select"
                   value={triagePatientId}
                   onChange={(e) => setTriagePatientId(e.target.value)}
                   className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-xs text-slate-900"
@@ -354,7 +386,7 @@ export const AppointmentScheduler: React.FC<AppointmentSchedulerProps> = ({
                 >
                   {patients.map((p) => (
                     <option key={p.id} value={p.id}>
-                      {p.name} ({p.mrn}) • Status: {p.admissionStatus}
+                      {p.name} ({p.mrn}) • Age: {new Date().getFullYear() - parseInt(p.dob.split('-')[0])}
                     </option>
                   ))}
                 </select>
@@ -362,165 +394,122 @@ export const AppointmentScheduler: React.FC<AppointmentSchedulerProps> = ({
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Reported Symptoms & Chief Complaint
+                  Primary Chief Complaint / Presentation
                 </label>
-                <textarea
-                  id="triage-symptoms-input"
-                  rows={3}
-                  value={symptoms}
-                  onChange={(e) => setSymptoms(e.target.value)}
-                  placeholder="e.g. Acute retrosternal chest pain with left arm radiation, shortness of breath, and diaphoresis for 2 hours..."
-                  className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-xs text-slate-900 focus:outline-hidden focus:border-purple-500"
+                <input
+                  id="chief-complaint-input"
+                  type="text"
+                  value={chiefComplaint}
+                  onChange={(e) => setChiefComplaint(e.target.value)}
+                  placeholder="e.g. Sudden onset substernal chest pressure radiating to left jaw, diaphoresis"
+                  className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-xs text-slate-900"
                   required
                 />
-                <div className="mt-1 flex flex-wrap gap-1.5">
-                  <span className="text-[10px] text-slate-400">Quick Test Scenarios:</span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSymptoms('Severe chest tightness, palpitations, and elevated BP');
-                      setReportedUrgency('Urgent');
-                    }}
-                    className="text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-700 px-2 py-0.5 rounded cursor-pointer"
-                  >
-                    Cardiology
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSymptoms('Suspected closed displaced right tibia fracture following bicycle crash');
-                      setReportedUrgency('Emergency');
-                    }}
-                    className="text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-700 px-2 py-0.5 rounded cursor-pointer"
-                  >
-                    Orthopedics
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSymptoms('Productive cough with yellow sputum, low-grade fever, mild wheezing');
-                      setReportedUrgency('Routine');
-                    }}
-                    className="text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-700 px-2 py-0.5 rounded cursor-pointer"
-                  >
-                    Pulmonology
-                  </button>
-                </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Patient Reported Urgency
-                  </label>
-                  <select
-                    value={reportedUrgency}
-                    onChange={(e) => setReportedUrgency(e.target.value as any)}
-                    className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-xs text-slate-900"
-                  >
-                    <option value="Routine">Routine (Non-urgent follow-up)</option>
-                    <option value="Urgent">Urgent (Needs attention within 24h)</option>
-                    <option value="Emergency">Emergency (Immediate clinical triage)</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Preferred Doctor (Optional)
-                  </label>
-                  <select
-                    value={preferredDoctor}
-                    onChange={(e) => setPreferredDoctor(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-xs text-slate-900"
-                  >
-                    <option value="">Auto-Assign Optimal Specialist</option>
-                    <option value="Dr. Evelyn Reed">Dr. Evelyn Reed (Cardiology)</option>
-                    <option value="Dr. Samantha Wu">Dr. Samantha Wu (Pulmonology)</option>
-                    <option value="Dr. Arthur Nolan">Dr. Arthur Nolan (Orthopedic Surgery)</option>
-                    <option value="Dr. Kenneth Thorne">Dr. Kenneth Thorne (Emergency)</option>
-                  </select>
-                </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Secondary Associated Symptoms (comma separated)
+                </label>
+                <input
+                  type="text"
+                  value={triageSymptoms}
+                  onChange={(e) => setTriageSymptoms(e.target.value)}
+                  placeholder="e.g. shortness of breath, nausea, palpitations"
+                  className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-xs text-slate-900"
+                />
               </div>
 
               <button
-                id="run-auto-schedule-btn"
+                id="run-triage-btn"
                 type="submit"
-                disabled={isAutoScheduling || !symptoms.trim()}
-                className="w-full py-2.5 px-4 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white rounded-xl text-xs font-bold transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-md"
+                disabled={isTriaging || !chiefComplaint.trim()}
+                className="w-full py-2.5 px-4 bg-[#0E2C27] hover:bg-[#14443C] text-white rounded-xl text-xs font-bold transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-xs disabled:opacity-50"
               >
-                {isAutoScheduling ? (
-                  <span>Evaluating Clinical Triage Model...</span>
+                {isTriaging ? (
+                  <span>Evaluating Clinical Severity...</span>
                 ) : (
                   <>
-                    <Sparkles className="w-4 h-4" />
-                    <span>Run Automated Triage & Book Slot</span>
+                    <Zap className="w-4 h-4 text-emerald-300" />
+                    <span>Run Clinical Triage Algorithm</span>
                   </>
                 )}
               </button>
             </form>
           </div>
 
-          {/* Triage Decision Output Card */}
-          <div className="lg:col-span-5 space-y-4">
+          {/* Triage Recommendation Output */}
+          <div className="lg:col-span-6">
             {triageResult ? (
-              <div className="bg-white rounded-xl border border-purple-200 p-5 shadow-xs space-y-4 animate-in fade-in duration-200">
-                <div className="flex items-center justify-between pb-3 border-b border-purple-100">
+              <div className="bg-white rounded-xl border border-emerald-300 p-5 shadow-md space-y-4 animate-in fade-in">
+                <div className="flex items-center justify-between pb-3 border-b border-slate-100">
                   <div className="flex items-center gap-2">
-                    <CheckCircle2 className="w-5 h-5 text-emerald-600" />
-                    <span className="font-bold text-sm text-slate-900">
-                      Optimal Appointment Confirmed!
-                    </span>
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <h4 className="font-bold text-sm text-slate-900">
+                      Triage Recommendation Computed
+                    </h4>
                   </div>
-                  <span className="text-[10px] font-mono text-purple-700 bg-purple-50 px-2 py-0.5 rounded font-bold">
-                    Score: {triageResult.triageDetails.score}/10
+                  <span className={`font-mono-clinical font-bold text-xs px-2.5 py-1 rounded ${
+                    triageResult.priorityScore >= 8 
+                      ? 'bg-rose-100 text-rose-800' 
+                      : 'bg-emerald-100 text-emerald-800'
+                  }`}>
+                    Priority Acuity: {triageResult.priorityScore}/10
                   </span>
                 </div>
 
-                <div className="space-y-2 text-xs">
-                  <div className="bg-slate-50 p-3 rounded-lg border border-slate-100 space-y-1.5">
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">Scheduled For:</span>
-                      <strong className="text-blue-700 font-mono">{triageResult.appointment.dateTime}</strong>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">Assigned Provider:</span>
-                      <strong className="text-slate-800">{triageResult.appointment.doctorName}</strong>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">Department Specialty:</span>
-                      <span className="font-semibold text-purple-700">{triageResult.appointment.specialty}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">Room / Bay:</span>
-                      <span className="text-slate-700">{triageResult.appointment.room}</span>
-                    </div>
-                  </div>
+                <div className="p-3.5 bg-emerald-50/60 rounded-xl border border-emerald-200 text-xs text-emerald-950 space-y-1">
+                  <strong className="block text-emerald-900 font-semibold">Algorithmic Clinical Rationale:</strong>
+                  <p>{triageResult.recommendationReason}</p>
+                </div>
 
-                  <div className="bg-purple-50/70 p-3 rounded-lg border border-purple-100 text-purple-950">
-                    <strong className="block text-[11px] uppercase tracking-wider text-purple-700 mb-1">
-                      Algorithmic Triage Rationale
-                    </strong>
-                    <p className="text-xs leading-relaxed">
-                      {triageResult.triageDetails.reasoning}
-                    </p>
+                {/* Proposed Slot Dossier */}
+                <div className="bg-[#F8FAF9] p-4 rounded-xl border border-[#D5DDD9] space-y-2 text-xs">
+                  <div className="text-[10px] text-slate-400 font-mono-clinical uppercase">OPTIMIZED CLINICAL DISPATCH</div>
+                  <div className="grid grid-cols-2 gap-3 pt-1">
+                    <div>
+                      <span className="text-slate-500 block text-[11px]">Recommended Attending:</span>
+                      <strong className="text-slate-900">{triageResult.suggestedAppointment.doctorName}</strong>
+                    </div>
+                    <div>
+                      <span className="text-slate-500 block text-[11px]">Department Specialty:</span>
+                      <strong className="text-[#1D7A68]">{triageResult.suggestedAppointment.department}</strong>
+                    </div>
+                    <div>
+                      <span className="text-slate-500 block text-[11px]">Scheduled Window:</span>
+                      <strong className="text-slate-900">{triageResult.suggestedAppointment.date} at {triageResult.suggestedAppointment.time}</strong>
+                    </div>
+                    <div>
+                      <span className="text-slate-500 block text-[11px]">Assigned Suite:</span>
+                      <strong className="text-slate-900">{triageResult.suggestedAppointment.room}</strong>
+                    </div>
                   </div>
                 </div>
 
-                <button
-                  onClick={() => setActiveTab('list')}
-                  className="w-full py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-semibold transition-colors cursor-pointer"
-                >
-                  View in Master Schedule
-                </button>
+                <div className="pt-2 flex items-center justify-end gap-2">
+                  <button
+                    onClick={() => setTriageResult(null)}
+                    className="px-4 py-2 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg cursor-pointer"
+                  >
+                    Dismiss
+                  </button>
+
+                  <button
+                    id="accept-triage-booking-btn"
+                    onClick={handleAcceptTriageBooking}
+                    className="px-5 py-2 text-xs font-bold text-white bg-[#0E2C27] hover:bg-[#14443C] rounded-lg cursor-pointer shadow-xs flex items-center gap-1.5"
+                  >
+                    <CheckCircle2 className="w-4 h-4 text-emerald-300" />
+                    <span>Confirm & Book Appointment</span>
+                  </button>
+                </div>
               </div>
             ) : (
-              <div className="bg-slate-50 rounded-xl border border-dashed border-slate-200 p-8 text-center text-slate-400 text-xs">
-                <Sparkles className="w-8 h-8 mx-auto mb-2 text-purple-400 opacity-60" />
-                <p className="font-semibold text-slate-600 mb-1">
-                  No Active Triage Evaluation
-                </p>
-                <p className="text-[11px] leading-relaxed">
-                  Enter symptoms and submit the form to let the automated triage algorithm evaluate acuity and book the optimal slot.
+              <div className="bg-[#F8FAF9] rounded-xl border border-[#D5DDD9] p-8 text-center text-slate-400">
+                <Activity className="w-10 h-10 mx-auto mb-2 text-slate-300" />
+                <h4 className="font-semibold text-slate-700 text-sm">No Active Triage Evaluation</h4>
+                <p className="text-xs text-slate-500 max-w-xs mx-auto mt-1">
+                  Fill in the patient chief complaint to let the Kaze Hospital triage algorithm calculate acuity scores and match providers.
                 </p>
               </div>
             )}
@@ -528,30 +517,37 @@ export const AppointmentScheduler: React.FC<AppointmentSchedulerProps> = ({
         </div>
       )}
 
-      {/* VIEW 3: MANUAL BOOKING FORM */}
-      {activeTab === 'manual' && (
-        <div className="max-w-2xl mx-auto bg-white rounded-xl border border-slate-200 p-6 shadow-xs">
-          <h3 className="text-base font-bold text-slate-900 mb-1">
-            Manual Provider Booking
-          </h3>
-          <p className="text-xs text-slate-500 mb-5">
-            Manually reserve a specific doctor slot and clinic room.
-          </p>
+      {/* TAB 3: MANUAL BOOKING */}
+      {activeTab === 'new' && (
+        <div className="max-w-2xl mx-auto bg-white rounded-xl border border-[#D5DDD9] p-6 shadow-xs">
+          <div className="flex items-center gap-2 mb-4 pb-3 border-b border-slate-100">
+            <div className="p-2 bg-slate-100 text-slate-800 rounded-lg">
+              <Calendar className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-base font-bold text-slate-900 font-sans">
+                Manual Clinic Appointment Booking
+              </h3>
+              <p className="text-xs text-slate-500 font-sans">
+                Direct provider booking for planned outpatient follow-ups and diagnostic encounters.
+              </p>
+            </div>
+          </div>
 
-          <form onSubmit={handleManualSubmit} className="space-y-4">
+          <form onSubmit={handleManualBooking} className="space-y-4">
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1">
-                Select Patient
+                Patient Subject
               </label>
               <select
-                value={manualPatientId}
-                onChange={(e) => setManualPatientId(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-xs text-slate-900"
+                value={bookPatientId}
+                onChange={(e) => setBookPatientId(e.target.value)}
+                className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-xs text-slate-900"
                 required
               >
                 {patients.map((p) => (
                   <option key={p.id} value={p.id}>
-                    {p.name} ({p.mrn}) • Status: {p.admissionStatus}
+                    {p.name} ({p.mrn}) • DOB: {p.dob}
                   </option>
                 ))}
               </select>
@@ -560,106 +556,105 @@ export const AppointmentScheduler: React.FC<AppointmentSchedulerProps> = ({
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Doctor Name
+                  Attending Specialist
                 </label>
-                <select
-                  value={manualDoctor}
-                  onChange={(e) => setManualDoctor(e.target.value)}
+                <input
+                  type="text"
+                  value={bookDoctor}
+                  onChange={(e) => setBookDoctor(e.target.value)}
                   className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-xs text-slate-900"
-                >
-                  <option value="Dr. Evelyn Reed">Dr. Evelyn Reed (Cardiology)</option>
-                  <option value="Dr. Samantha Wu">Dr. Samantha Wu (Pulmonology)</option>
-                  <option value="Dr. Arthur Nolan">Dr. Arthur Nolan (Orthopedic Surgery)</option>
-                  <option value="Dr. Kenneth Thorne">Dr. Kenneth Thorne (Emergency)</option>
-                </select>
+                  required
+                />
               </div>
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Specialty
+                  Department
                 </label>
-                <input
-                  type="text"
-                  value={manualSpecialty}
-                  onChange={(e) => setManualSpecialty(e.target.value)}
+                <select
+                  value={bookDepartment}
+                  onChange={(e) => setBookDepartment(e.target.value)}
                   className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-xs text-slate-900"
-                  required
-                />
+                >
+                  <option value="Cardiology">Cardiology</option>
+                  <option value="Pulmonology">Pulmonology</option>
+                  <option value="Neurology">Neurology</option>
+                  <option value="Internal Medicine">Internal Medicine</option>
+                  <option value="General Surgery">General Surgery</option>
+                  <option value="Orthopedics">Orthopedics</option>
+                </select>
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-3">
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Date & Time
+                  Encounter Date
                 </label>
                 <input
-                  type="text"
-                  value={manualDateTime}
-                  onChange={(e) => setManualDateTime(e.target.value)}
-                  placeholder="YYYY-MM-DD HH:MM"
-                  className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-xs text-slate-900 font-mono"
+                  type="date"
+                  value={bookDate}
+                  onChange={(e) => setBookDate(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-xs text-slate-900"
                   required
                 />
               </div>
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Urgency Level
+                  Time
                 </label>
-                <select
-                  value={manualUrgency}
-                  onChange={(e) => setManualUrgency(e.target.value as any)}
+                <input
+                  type="time"
+                  value={bookTime}
+                  onChange={(e) => setBookTime(e.target.value)}
                   className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-xs text-slate-900"
-                >
-                  <option value="Routine">Routine</option>
-                  <option value="Urgent">Urgent</option>
-                  <option value="Emergency">Emergency</option>
-                </select>
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Clinic Room
+                </label>
+                <input
+                  type="text"
+                  value={bookRoom}
+                  onChange={(e) => setBookRoom(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-xs text-slate-900"
+                  required
+                />
               </div>
             </div>
 
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1">
-                Consultation Room / Clinic Location
+                Reason for Visit / Order Details
               </label>
-              <input
-                type="text"
-                value={manualRoom}
-                onChange={(e) => setManualRoom(e.target.value)}
+              <textarea
+                rows={3}
+                value={bookReason}
+                onChange={(e) => setBookReason(e.target.value)}
                 className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-xs text-slate-900"
                 required
               />
             </div>
 
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">
-                Reason for Visit
-              </label>
-              <textarea
-                rows={2}
-                value={manualReason}
-                onChange={(e) => setManualReason(e.target.value)}
-                placeholder="e.g. Post-operative stitch removal and wound inspection"
-                className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-xs text-slate-900"
-                required
-              />
-            </div>
-
-            <div className="flex items-center justify-end gap-2 pt-2">
+            <div className="pt-2 flex items-center justify-end gap-2">
               <button
                 type="button"
-                onClick={() => setActiveTab('list')}
+                onClick={() => setActiveTab('schedule')}
                 className="px-4 py-2 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg cursor-pointer"
               >
                 Cancel
               </button>
+
               <button
                 type="submit"
-                disabled={isManualSubmitting}
-                className="px-5 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 rounded-lg cursor-pointer shadow-xs"
+                disabled={isBooking}
+                className="px-5 py-2 text-xs font-bold text-white bg-[#0E2C27] hover:bg-[#14443C] rounded-lg cursor-pointer shadow-xs"
               >
-                {isManualSubmitting ? 'Booking...' : 'Confirm Appointment'}
+                {isBooking ? 'Registering Slot...' : 'Schedule Appointment'}
               </button>
             </div>
           </form>

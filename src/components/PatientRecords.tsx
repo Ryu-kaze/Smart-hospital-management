@@ -20,7 +20,9 @@ import {
   Mail,
   Clock,
   CheckCircle2,
-  RefreshCw
+  RefreshCw,
+  FolderLock,
+  FileSpreadsheet
 } from 'lucide-react';
 import { Patient, UserProfile, DecryptedMedicalHistory } from '../types';
 
@@ -112,7 +114,6 @@ export const PatientRecords: React.FC<PatientRecordsProps> = ({
     try {
       setIsSavingNote(true);
       await onAddClinicalNote(selectedPatient.id, newNoteText, newNoteSpecialty);
-      // Refresh local decrypted notes
       if (currentDecryptedHistory) {
         currentDecryptedHistory.clinicalNotes.unshift({
           id: `CN-${Date.now().toString().slice(-4)}`,
@@ -150,39 +151,39 @@ export const PatientRecords: React.FC<PatientRecordsProps> = ({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {/* Top Banner */}
-      <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div className="bg-white rounded-xl border border-[#D5DDD9] p-4 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <div className="flex items-center gap-2">
-            <h2 className="text-base font-bold text-slate-900">
-              Encrypted Electronic Health Records (EHR)
+            <h2 className="text-base font-bold text-slate-900 tracking-tight font-sans">
+              Kaze Hospital Cryptographic EHR Vault
             </h2>
-            <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-cyan-100 text-cyan-800 border border-cyan-200">
-              <Key className="w-3 h-3 text-cyan-600" />
-              AES-256-GCM Vault
+            <span className="inline-flex items-center gap-1 text-[11px] font-mono-clinical font-bold px-2 py-0.5 rounded bg-[#E4EFEA] text-[#134D41] border border-[#BBD5CB]">
+              <Key className="w-3 h-3 text-[#1D7A68]" />
+              AES-256-GCM SEALED
             </span>
           </div>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Protected Health Information (PHI) is cryptographically sealed at rest. Access requires verified role-based authorization or emergency break-glass.
+          <p className="text-xs text-slate-500 mt-0.5 font-sans">
+            Protected Health Information (PHI) is sealed at rest with unique 96-bit initialization vectors. Decryption events are logged to the Kaze immutable audit ledger.
           </p>
         </div>
 
         <button
           id="register-patient-btn"
           onClick={() => setIsRegisterModalOpen(true)}
-          className="py-2 px-3.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-xs shrink-0"
+          className="py-2 px-3.5 bg-[#0E2C27] hover:bg-[#15453E] text-white rounded-lg text-xs font-bold transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-xs shrink-0"
         >
           <UserPlus className="w-3.5 h-3.5" />
-          <span>New Patient Intake</span>
+          <span>Patient Intake Dossier</span>
         </button>
       </div>
 
-      {/* Main Grid: Patient Directory (Left) + Detailed EHR Record (Right) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Patient Directory Sidebar */}
-        <div className="lg:col-span-4 bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
-          <div className="p-3.5 border-b border-slate-100 bg-slate-50">
+      {/* Main Grid: Directory + Medical Record */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+        {/* Patient Directory Master List */}
+        <div className="lg:col-span-4 bg-white rounded-xl border border-[#D5DDD9] shadow-xs overflow-hidden">
+          <div className="p-3 border-b border-[#E2E8E5] bg-[#F7F9F8]">
             <div className="relative">
               <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
@@ -190,13 +191,13 @@ export const PatientRecords: React.FC<PatientRecordsProps> = ({
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search patient or MRN..."
-                className="w-full bg-white border border-slate-200 rounded-lg pl-8 pr-3 py-1.5 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-hidden focus:border-blue-500"
+                placeholder="Search patient name or MRN..."
+                className="w-full bg-white border border-slate-300 rounded-lg pl-8 pr-3 py-1.5 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-hidden focus:border-[#14443C]"
               />
             </div>
           </div>
 
-          <div className="divide-y divide-slate-100 max-h-[640px] overflow-y-auto">
+          <div className="divide-y divide-[#EDF1EF] max-h-[640px] overflow-y-auto">
             {filteredPatients.map((patient) => {
               const isSelected = patient.id === selectedPatient?.id;
               const hasDecrypted = Boolean(decryptedDataMap[patient.id]);
@@ -207,7 +208,7 @@ export const PatientRecords: React.FC<PatientRecordsProps> = ({
                   id={`patient-item-${patient.id}`}
                   onClick={() => setSelectedPatientId(patient.id)}
                   className={`w-full text-left p-3.5 transition-colors flex items-start justify-between gap-2 cursor-pointer ${
-                    isSelected ? 'bg-blue-50/70 border-l-4 border-blue-600' : 'hover:bg-slate-50'
+                    isSelected ? 'bg-[#EBF3F0] border-l-4 border-[#0E2C27]' : 'hover:bg-[#F9FAF9]'
                   }`}
                 >
                   <div className="min-w-0 flex-1">
@@ -217,7 +218,7 @@ export const PatientRecords: React.FC<PatientRecordsProps> = ({
                       </span>
                       {hasDecrypted ? (
                         <span title="Decrypted in active session">
-                          <Unlock className="w-3 h-3 text-emerald-600 shrink-0" />
+                          <Unlock className="w-3 h-3 text-emerald-700 shrink-0" />
                         </span>
                       ) : (
                         <span title="AES-256 Encrypted">
@@ -225,11 +226,11 @@ export const PatientRecords: React.FC<PatientRecordsProps> = ({
                         </span>
                       )}
                     </div>
-                    <div className="text-[11px] text-slate-500 font-mono mt-0.5">
+                    <div className="text-[11px] text-slate-500 font-mono-clinical mt-0.5">
                       {privacyMode ? 'MRN-••••••' : patient.mrn} • {patient.dob}
                     </div>
-                    <div className="text-[10px] text-slate-400 mt-1 flex items-center gap-2">
-                      <span className="font-semibold text-slate-600">{patient.admissionStatus}</span>
+                    <div className="text-[10px] text-slate-400 mt-1 flex items-center gap-2 font-mono-clinical">
+                      <span className="font-semibold text-slate-700">{patient.admissionStatus}</span>
                       <span>•</span>
                       <span className="truncate">{patient.insurance.provider}</span>
                     </div>
@@ -240,42 +241,42 @@ export const PatientRecords: React.FC<PatientRecordsProps> = ({
           </div>
         </div>
 
-        {/* EHR Dossier View */}
+        {/* Selected Patient EHR Chart */}
         {selectedPatient && (
-          <div className="lg:col-span-8 space-y-5">
-            {/* Patient Header Card */}
-            <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-xs">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+          <div className="lg:col-span-8 space-y-4">
+            {/* Patient Face Sheet Header */}
+            <div className="bg-white rounded-xl border border-[#D5DDD9] p-5 shadow-xs">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#E2E8E5]">
                 <div>
                   <div className="flex items-center gap-2.5">
-                    <h3 className={`text-lg font-bold text-slate-900 ${privacyMode ? 'phi-blur' : ''}`}>
+                    <h3 className={`text-lg font-bold text-slate-900 font-sans ${privacyMode ? 'phi-blur' : ''}`}>
                       {selectedPatient.name}
                     </h3>
-                    <span className="bg-blue-50 text-blue-700 text-xs font-mono font-bold px-2 py-0.5 rounded border border-blue-200">
+                    <span className="bg-[#E9F1EE] text-[#0F3E35] text-xs font-mono-clinical font-bold px-2 py-0.5 rounded border border-[#BDD7CE]">
                       {privacyMode ? 'MRN-••••••' : selectedPatient.mrn}
                     </span>
                     <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${
                       selectedPatient.admissionStatus === 'Admitted'
-                        ? 'bg-emerald-100 text-emerald-800'
+                        ? 'bg-emerald-100 text-emerald-900 border border-emerald-300'
                         : selectedPatient.admissionStatus === 'In Triage'
-                        ? 'bg-amber-100 text-amber-800'
+                        ? 'bg-amber-100 text-amber-900 border border-amber-300'
                         : 'bg-slate-100 text-slate-700'
                     }`}>
                       {selectedPatient.admissionStatus}
                     </span>
                   </div>
-                  <div className="text-xs text-slate-500 mt-1 flex flex-wrap items-center gap-3">
+                  <div className="text-xs text-slate-500 mt-1 flex flex-wrap items-center gap-3 font-sans">
                     <span>DOB: <strong>{selectedPatient.dob}</strong></span>
                     <span>•</span>
                     <span>Gender: <strong>{selectedPatient.gender}</strong></span>
                     <span>•</span>
-                    <span>Blood: <strong className="text-red-600">{selectedPatient.bloodType}</strong></span>
+                    <span>Blood: <strong className="text-rose-700 font-mono-clinical">{selectedPatient.bloodType}</strong></span>
                     <span>•</span>
                     <span>Attending: <strong>{selectedPatient.primaryPhysician}</strong></span>
                   </div>
                 </div>
 
-                {/* Encryption Status & Toggle */}
+                {/* Cryptographic Controls */}
                 <div className="flex items-center gap-2 shrink-0">
                   {isDecrypted ? (
                     <div className="flex items-center gap-2">
@@ -283,7 +284,7 @@ export const PatientRecords: React.FC<PatientRecordsProps> = ({
                         id="reseal-record-btn"
                         onClick={handleReseal}
                         className="py-1.5 px-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5 cursor-pointer"
-                        title="Re-seal record to clear unmasked PHI from active memory"
+                        title="Re-seal record to clear unmasked PHI from memory"
                       >
                         <Lock className="w-3.5 h-3.5 text-slate-500" />
                         <span>Re-Seal (Lock)</span>
@@ -293,10 +294,10 @@ export const PatientRecords: React.FC<PatientRecordsProps> = ({
                         <button
                           id="add-clinical-note-btn"
                           onClick={() => setIsAddNoteModalOpen(true)}
-                          className="py-1.5 px-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
+                          className="py-1.5 px-3 bg-[#0E2C27] hover:bg-[#14443C] text-white rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
                         >
                           <Plus className="w-3.5 h-3.5" />
-                          <span>Add Progress Note</span>
+                          <span>Add SOAP Note</span>
                         </button>
                       )}
                     </div>
@@ -305,7 +306,7 @@ export const PatientRecords: React.FC<PatientRecordsProps> = ({
                       <button
                         id="decrypt-record-btn"
                         onClick={() => setIsDecryptModalOpen(true)}
-                        className="py-2 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition-colors flex items-center gap-2 cursor-pointer shadow-xs"
+                        className="py-2 px-4 bg-emerald-700 hover:bg-emerald-600 text-white rounded-lg text-xs font-bold transition-colors flex items-center gap-2 cursor-pointer shadow-xs"
                       >
                         <Key className="w-4 h-4" />
                         <span>Decrypt Medical History</span>
@@ -314,10 +315,10 @@ export const PatientRecords: React.FC<PatientRecordsProps> = ({
                       {!currentUser.canDecryptRecords && (
                         <button
                           onClick={onOpenBreakGlass}
-                          className="py-2 px-3 bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer"
+                          className="py-2 px-3 bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-300 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer"
                           title="Trigger emergency break-glass override"
                         >
-                          <AlertTriangle className="w-3.5 h-3.5 text-red-600" />
+                          <AlertTriangle className="w-3.5 h-3.5 text-rose-600" />
                           <span>Break Glass</span>
                         </button>
                       )}
@@ -326,18 +327,18 @@ export const PatientRecords: React.FC<PatientRecordsProps> = ({
                 </div>
               </div>
 
-              {/* Insurance & Emergency Contact strip */}
+              {/* Demographics & Insurance Banner */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-3 text-xs">
-                <div className="bg-slate-50 rounded-lg p-2.5 border border-slate-100">
-                  <span className="text-slate-400 font-medium block text-[11px] mb-0.5">Insurance Coverage</span>
+                <div className="bg-[#F8FAF9] rounded-lg p-3 border border-[#E2E8E5]">
+                  <span className="text-slate-400 font-mono-clinical uppercase text-[10px] block mb-0.5">PAYER & COVERAGE</span>
                   <div className="font-semibold text-slate-800">{selectedPatient.insurance.provider}</div>
-                  <div className="text-slate-500 text-[11px] mt-0.5 font-mono">
+                  <div className="text-slate-500 text-[11px] mt-0.5 font-mono-clinical">
                     Policy: {selectedPatient.insurance.policyNumber} • Copay: ${selectedPatient.insurance.copayAmount}
                   </div>
                 </div>
 
-                <div className="bg-slate-50 rounded-lg p-2.5 border border-slate-100">
-                  <span className="text-slate-400 font-medium block text-[11px] mb-0.5">Emergency Proxy Contact</span>
+                <div className="bg-[#F8FAF9] rounded-lg p-3 border border-[#E2E8E5]">
+                  <span className="text-slate-400 font-mono-clinical uppercase text-[10px] block mb-0.5">NEXT OF KIN / PROXY</span>
                   <div className={`font-semibold text-slate-800 ${privacyMode ? 'phi-blur' : ''}`}>
                     {selectedPatient.emergencyContact.name} ({selectedPatient.emergencyContact.relationship})
                   </div>
@@ -348,34 +349,34 @@ export const PatientRecords: React.FC<PatientRecordsProps> = ({
               </div>
             </div>
 
-            {/* Cryptographic Sealed State (when NOT decrypted) */}
+            {/* Cryptographically Sealed State Box */}
             {!isDecrypted ? (
-              <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-xs text-center">
-                <div className="w-14 h-14 rounded-2xl bg-cyan-50 border border-cyan-200 text-cyan-600 flex items-center justify-center mx-auto mb-3">
+              <div className="bg-white rounded-xl border border-[#D5DDD9] p-7 shadow-xs text-center">
+                <div className="w-14 h-14 rounded-2xl bg-[#E8F3EE] border border-[#BDD7CC] text-[#134D41] flex items-center justify-center mx-auto mb-3">
                   <ShieldCheck className="w-7 h-7" />
                 </div>
-                <h4 className="text-base font-bold text-slate-900">
-                  Record Cryptographically Sealed
+                <h4 className="text-base font-bold text-slate-900 font-sans">
+                  Medical Record Cryptographically Sealed
                 </h4>
-                <p className="text-xs text-slate-500 max-w-md mx-auto mt-1 leading-relaxed">
-                  Clinical notes, active diagnoses, medications, lab diagnostics, and allergy details are stored using hardware-accelerated <strong>AES-256-GCM</strong> authenticated encryption.
+                <p className="text-xs text-slate-500 max-w-md mx-auto mt-1 leading-relaxed font-sans">
+                  Clinical progress notes, chronic diagnoses, prescribed medications, diagnostic labs, and allergy records are encrypted at rest with <strong>AES-256-GCM</strong>.
                 </p>
 
-                {/* Ciphertext Preview Box */}
-                <div className="mt-5 max-w-lg mx-auto bg-slate-900 text-slate-300 rounded-xl p-3.5 text-left border border-slate-800 font-mono text-[11px]">
-                  <div className="flex items-center justify-between text-slate-400 pb-2 border-b border-slate-800 mb-2">
-                    <span className="flex items-center gap-1.5 text-emerald-400">
+                {/* Ciphertext Envelope Inspector */}
+                <div className="mt-5 max-w-lg mx-auto bg-[#071917] text-slate-300 rounded-xl p-3.5 text-left border border-[#143B34] font-mono-clinical text-[11px]">
+                  <div className="flex items-center justify-between text-slate-400 pb-2 border-b border-[#133A33] mb-2">
+                    <span className="flex items-center gap-1.5 text-emerald-400 font-bold">
                       <Key className="w-3 h-3" />
-                      Payload Envelope (Ciphertext)
+                      Encrypted Envelope Header
                     </span>
-                    <span className="text-[10px] text-slate-400">Algorithm: {selectedPatient.encryptedHistoryPayload.algorithm}</span>
+                    <span className="text-[10px] text-slate-400">ALGO: {selectedPatient.encryptedHistoryPayload.algorithm}</span>
                   </div>
 
-                  <div className="space-y-1 text-slate-400">
-                    <div><span className="text-cyan-400">IV (96-bit):</span> {selectedPatient.encryptedHistoryPayload.iv}</div>
-                    <div><span className="text-amber-400">Auth Tag (128-bit):</span> {selectedPatient.encryptedHistoryPayload.authTag}</div>
+                  <div className="space-y-1 text-slate-300">
+                    <div><span className="text-teal-400">IV (96-bit nonce):</span> {selectedPatient.encryptedHistoryPayload.iv}</div>
+                    <div><span className="text-amber-400">Auth Tag (128-bit MAC):</span> {selectedPatient.encryptedHistoryPayload.authTag}</div>
                     <div className="truncate">
-                      <span className="text-purple-400">Ciphertext:</span> {selectedPatient.encryptedHistoryPayload.ciphertext.substring(0, 50)}... [encrypted]
+                      <span className="text-emerald-300">Payload:</span> {selectedPatient.encryptedHistoryPayload.ciphertext.substring(0, 50)}... [ciphertext sealed]
                     </div>
                   </div>
                 </div>
@@ -384,45 +385,45 @@ export const PatientRecords: React.FC<PatientRecordsProps> = ({
                   <button
                     id="decrypt-modal-trigger-btn"
                     onClick={() => setIsDecryptModalOpen(true)}
-                    className="py-2.5 px-5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all shadow-md cursor-pointer inline-flex items-center gap-2"
+                    className="py-2.5 px-5 bg-[#0E2C27] hover:bg-[#14443C] text-white rounded-xl text-xs font-bold transition-all shadow-md cursor-pointer inline-flex items-center gap-2"
                   >
-                    <Unlock className="w-4 h-4" />
-                    <span>Unseal Record with Credentials</span>
+                    <Unlock className="w-4 h-4 text-emerald-300" />
+                    <span>Authenticate & Decrypt Record</span>
                   </button>
                 </div>
               </div>
             ) : (
-              /* DECRYPTED EHR DOSSIER VIEW */
-              <div className="space-y-4 animate-in fade-in duration-300">
-                {/* Decryption Banner */}
-                <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 flex items-center justify-between text-xs text-emerald-900">
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+              /* DECRYPTED EHR DOSSIER */
+              <div className="space-y-4 animate-in fade-in duration-200">
+                {/* Audit Stamp Banner */}
+                <div className="bg-[#EDF5F2] border border-[#BDD7CC] rounded-xl p-3 flex items-center justify-between text-xs text-[#0D3830]">
+                  <div className="flex items-center gap-2 font-mono-clinical">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-700" />
                     <span>
-                      Decrypted by <strong>{currentDecryptedHistory?.decryptedBy || currentUser.name}</strong> • Access logged to HIPAA Audit Trail
+                      Decrypted by <strong>{currentDecryptedHistory?.decryptedBy || currentUser.name}</strong> • Logged to Audit Trail
                     </span>
                   </div>
-                  <span className="text-[10px] font-mono text-emerald-700">
-                    NIST SP 800-38D Verified
+                  <span className="text-[10px] font-mono-clinical text-[#165649] font-bold">
+                    NIST SP 800-38D VERIFIED
                   </span>
                 </div>
 
-                {/* ALLERGIES BANNER */}
+                {/* CRITICAL ALLERGY ALERT */}
                 {currentDecryptedHistory?.allergies && currentDecryptedHistory.allergies.length > 0 && (
-                  <div className="bg-red-50 border border-red-200 rounded-xl p-4">
-                    <div className="flex items-center gap-2 text-xs font-bold text-red-900 mb-2">
-                      <AlertTriangle className="w-4 h-4 text-red-600" />
-                      CRITICAL ALLERGY & ANAPHYLAXIS ALERTS
+                  <div className="bg-rose-50 border border-rose-200 rounded-xl p-4">
+                    <div className="flex items-center gap-2 text-xs font-bold text-rose-900 mb-2 font-sans">
+                      <AlertTriangle className="w-4 h-4 text-rose-600" />
+                      CRITICAL ALLERGY & ANAPHYLAXIS RECORD
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                       {currentDecryptedHistory.allergies.map((allergy, idx) => (
-                        <div key={idx} className="bg-white p-2.5 rounded-lg border border-red-200 flex items-start justify-between gap-2">
+                        <div key={idx} className="bg-white p-2.5 rounded-lg border border-rose-200 flex items-start justify-between gap-2">
                           <div>
-                            <span className="font-bold text-xs text-red-800">{allergy.substance}</span>
+                            <span className="font-bold text-xs text-rose-900">{allergy.substance}</span>
                             <p className="text-[11px] text-slate-600 mt-0.5">{allergy.reaction}</p>
                           </div>
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase ${
-                            allergy.severity === 'Anaphylactic' ? 'bg-red-600 text-white' : 'bg-amber-100 text-amber-800'
+                          <span className={`text-[10px] font-bold font-mono-clinical px-2 py-0.5 rounded uppercase ${
+                            allergy.severity === 'Anaphylactic' ? 'bg-rose-700 text-white' : 'bg-amber-100 text-amber-900'
                           }`}>
                             {allergy.severity}
                           </span>
@@ -432,26 +433,26 @@ export const PatientRecords: React.FC<PatientRecordsProps> = ({
                   </div>
                 )}
 
-                {/* DIAGNOSES & CLINICAL NOTES */}
+                {/* DIAGNOSES & MEDICATIONS */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* Active Diagnoses */}
-                  <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-xs">
-                    <div className="flex items-center gap-2 text-xs font-bold text-slate-900 mb-3 pb-2 border-b border-slate-100">
-                      <Stethoscope className="w-4 h-4 text-blue-600" />
-                      Active Clinical Diagnoses (ICD-10)
+                  <div className="bg-white rounded-xl border border-[#D5DDD9] p-4 shadow-xs">
+                    <div className="flex items-center gap-2 text-xs font-bold text-slate-900 mb-3 pb-2 border-b border-slate-100 font-sans">
+                      <Stethoscope className="w-4 h-4 text-[#1D7A68]" />
+                      Active Clinical Diagnoses (ICD-10-CM)
                     </div>
                     <div className="space-y-2.5">
                       {currentDecryptedHistory?.diagnoses && currentDecryptedHistory.diagnoses.length > 0 ? (
                         currentDecryptedHistory.diagnoses.map((diag, idx) => (
-                          <div key={idx} className="bg-slate-50 p-2.5 rounded-lg border border-slate-100">
+                          <div key={idx} className="bg-[#F8FAF9] p-2.5 rounded-lg border border-[#E2E8E5]">
                             <div className="flex items-center justify-between">
-                              <span className="font-mono text-xs font-bold text-blue-700">{diag.code}</span>
-                              <span className="text-[10px] font-semibold px-1.5 py-0.2 rounded bg-blue-100 text-blue-800">
+                              <span className="font-mono-clinical text-xs font-bold text-[#0E2C27]">{diag.code}</span>
+                              <span className="text-[10px] font-semibold px-1.5 py-0.2 rounded bg-emerald-100 text-emerald-900">
                                 {diag.status}
                               </span>
                             </div>
                             <div className="text-xs font-semibold text-slate-800 mt-0.5">{diag.name}</div>
-                            <div className="text-[10px] text-slate-400 mt-1">
+                            <div className="text-[10px] text-slate-400 mt-1 font-mono-clinical">
                               Diagnosed {diag.diagnosedDate} by {diag.diagnosedBy}
                             </div>
                           </div>
@@ -463,25 +464,25 @@ export const PatientRecords: React.FC<PatientRecordsProps> = ({
                   </div>
 
                   {/* Active Medications */}
-                  <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-xs">
-                    <div className="flex items-center gap-2 text-xs font-bold text-slate-900 mb-3 pb-2 border-b border-slate-100">
-                      <Pill className="w-4 h-4 text-purple-600" />
-                      Active Prescribed Medications
+                  <div className="bg-white rounded-xl border border-[#D5DDD9] p-4 shadow-xs">
+                    <div className="flex items-center gap-2 text-xs font-bold text-slate-900 mb-3 pb-2 border-b border-slate-100 font-sans">
+                      <Pill className="w-4 h-4 text-purple-700" />
+                      MAR • Active Medications
                     </div>
                     <div className="space-y-2.5">
                       {currentDecryptedHistory?.medications && currentDecryptedHistory.medications.length > 0 ? (
                         currentDecryptedHistory.medications.map((med, idx) => (
-                          <div key={idx} className="bg-slate-50 p-2.5 rounded-lg border border-slate-100">
+                          <div key={idx} className="bg-[#F8FAF9] p-2.5 rounded-lg border border-[#E2E8E5]">
                             <div className="flex items-center justify-between">
                               <span className="text-xs font-bold text-slate-900">{med.name}</span>
-                              <span className="text-[11px] font-semibold text-purple-700 bg-purple-50 px-1.5 rounded">
+                              <span className="text-[11px] font-semibold text-purple-800 bg-purple-50 px-1.5 rounded font-mono-clinical">
                                 {med.dosage}
                               </span>
                             </div>
                             <div className="text-[11px] text-slate-600 mt-0.5">
                               {med.frequency} • {med.route}
                             </div>
-                            <div className="text-[10px] text-slate-400 mt-0.5">
+                            <div className="text-[10px] text-slate-400 mt-0.5 font-mono-clinical">
                               Prescribed by {med.prescribedBy} on {med.startDate}
                             </div>
                           </div>
@@ -493,22 +494,22 @@ export const PatientRecords: React.FC<PatientRecordsProps> = ({
                   </div>
                 </div>
 
-                {/* CLINICAL PROGRESS NOTES */}
-                <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-xs">
+                {/* CLINICAL SOAP PROGRESS NOTES */}
+                <div className="bg-white rounded-xl border border-[#D5DDD9] p-4 shadow-xs">
                   <div className="flex items-center justify-between mb-3 pb-2 border-b border-slate-100">
-                    <div className="flex items-center gap-2 text-xs font-bold text-slate-900">
-                      <FileText className="w-4 h-4 text-emerald-600" />
-                      Physician Progress Notes & Encounters
+                    <div className="flex items-center gap-2 text-xs font-bold text-slate-900 font-sans">
+                      <FileText className="w-4 h-4 text-[#1D7A68]" />
+                      Physician SOAP Progress Notes & Encounters
                     </div>
-                    <span className="text-[10px] text-slate-400">
-                      {currentDecryptedHistory?.clinicalNotes.length || 0} Notes
+                    <span className="text-[10px] text-slate-400 font-mono-clinical">
+                      {currentDecryptedHistory?.clinicalNotes.length || 0} Records
                     </span>
                   </div>
 
                   <div className="space-y-3">
                     {currentDecryptedHistory?.clinicalNotes && currentDecryptedHistory.clinicalNotes.length > 0 ? (
                       currentDecryptedHistory.clinicalNotes.map((note) => (
-                        <div key={note.id} className="bg-slate-50 p-3 rounded-lg border border-slate-200/80">
+                        <div key={note.id} className="bg-[#F8FAF9] p-3 rounded-lg border border-[#E2E8E5]">
                           <div className="flex items-center justify-between mb-1.5">
                             <div className="flex items-center gap-2">
                               <span className="text-xs font-bold text-slate-900">{note.doctorName}</span>
@@ -516,12 +517,12 @@ export const PatientRecords: React.FC<PatientRecordsProps> = ({
                                 {note.specialty}
                               </span>
                             </div>
-                            <span className="text-[10px] text-slate-400 font-mono flex items-center gap-1">
+                            <span className="text-[10px] text-slate-400 font-mono-clinical flex items-center gap-1">
                               <Clock className="w-3 h-3" />
                               {note.date}
                             </span>
                           </div>
-                          <p className={`text-xs text-slate-700 leading-relaxed ${privacyMode ? 'phi-blur' : ''}`}>
+                          <p className={`text-xs text-slate-700 leading-relaxed font-sans ${privacyMode ? 'phi-blur' : ''}`}>
                             {note.note}
                           </p>
                         </div>
@@ -535,27 +536,27 @@ export const PatientRecords: React.FC<PatientRecordsProps> = ({
                 {/* DIAGNOSTIC LAB RESULTS & SURGICAL HISTORY */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* Lab Results */}
-                  <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-xs">
-                    <div className="flex items-center gap-2 text-xs font-bold text-slate-900 mb-3 pb-2 border-b border-slate-100">
-                      <FlaskConical className="w-4 h-4 text-cyan-600" />
-                      Diagnostic Lab Results
+                  <div className="bg-white rounded-xl border border-[#D5DDD9] p-4 shadow-xs">
+                    <div className="flex items-center gap-2 text-xs font-bold text-slate-900 mb-3 pb-2 border-b border-slate-100 font-sans">
+                      <FlaskConical className="w-4 h-4 text-teal-700" />
+                      Laboratory Diagnostics & Panels
                     </div>
                     <div className="space-y-2">
                       {currentDecryptedHistory?.labResults && currentDecryptedHistory.labResults.length > 0 ? (
                         currentDecryptedHistory.labResults.map((lab, idx) => (
-                          <div key={idx} className="flex items-center justify-between p-2 rounded bg-slate-50 border border-slate-100 text-xs">
+                          <div key={idx} className="flex items-center justify-between p-2 rounded bg-[#F8FAF9] border border-[#E2E8E5] text-xs">
                             <div>
                               <div className="font-semibold text-slate-800">{lab.testName}</div>
-                              <div className="text-[10px] text-slate-400">Ref: {lab.referenceRange} • {lab.date}</div>
+                              <div className="text-[10px] text-slate-400 font-mono-clinical">Ref: {lab.referenceRange} • {lab.date}</div>
                             </div>
                             <div className="text-right">
-                              <span className={`font-mono font-bold ${
-                                lab.flag === 'abnormal' ? 'text-amber-600' : lab.flag === 'critical' ? 'text-red-600' : 'text-emerald-600'
+                              <span className={`font-mono-clinical font-bold ${
+                                lab.flag === 'abnormal' ? 'text-amber-700' : lab.flag === 'critical' ? 'text-rose-700' : 'text-emerald-800'
                               }`}>
                                 {lab.result}
                               </span>
                               {lab.flag !== 'normal' && (
-                                <span className="block text-[9px] font-bold uppercase text-red-500">
+                                <span className="block text-[9px] font-bold uppercase text-rose-600 font-mono-clinical">
                                   {lab.flag}
                                 </span>
                               )}
@@ -569,18 +570,18 @@ export const PatientRecords: React.FC<PatientRecordsProps> = ({
                   </div>
 
                   {/* Surgical History */}
-                  <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-xs">
-                    <div className="flex items-center gap-2 text-xs font-bold text-slate-900 mb-3 pb-2 border-b border-slate-100">
-                      <HeartHandshake className="w-4 h-4 text-rose-600" />
-                      Surgical & Procedural History
+                  <div className="bg-white rounded-xl border border-[#D5DDD9] p-4 shadow-xs">
+                    <div className="flex items-center gap-2 text-xs font-bold text-slate-900 mb-3 pb-2 border-b border-slate-100 font-sans">
+                      <HeartHandshake className="w-4 h-4 text-rose-700" />
+                      Surgical & Interventional Procedures
                     </div>
                     <div className="space-y-2">
                       {currentDecryptedHistory?.surgeries && currentDecryptedHistory.surgeries.length > 0 ? (
                         currentDecryptedHistory.surgeries.map((surg, idx) => (
-                          <div key={idx} className="p-2.5 rounded bg-slate-50 border border-slate-100 text-xs">
+                          <div key={idx} className="p-2.5 rounded bg-[#F8FAF9] border border-[#E2E8E5] text-xs">
                             <div className="font-semibold text-slate-900">{surg.procedure}</div>
                             <div className="text-[11px] text-slate-600 mt-0.5">{surg.notes}</div>
-                            <div className="text-[10px] text-slate-400 mt-1">
+                            <div className="text-[10px] text-slate-400 mt-1 font-mono-clinical">
                               {surg.date} • {surg.surgeon} ({surg.hospital})
                             </div>
                           </div>
@@ -599,18 +600,18 @@ export const PatientRecords: React.FC<PatientRecordsProps> = ({
 
       {/* DECRYPT AUTHORIZATION MODAL */}
       {isDecryptModalOpen && selectedPatient && (
-        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 bg-[#071714]/80 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl border border-slate-200 p-6 animate-in fade-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
               <div className="flex items-center gap-2">
-                <div className="p-1.5 bg-blue-50 text-blue-600 rounded-lg">
+                <div className="p-2 bg-[#E7F2EE] text-[#0E2C27] rounded-lg">
                   <Key className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-base font-bold text-slate-900">
-                    Unseal Medical Record (AES-256)
+                  <h3 className="text-base font-bold text-slate-900 font-sans">
+                    Authenticate & Unseal EHR
                   </h3>
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-slate-500 font-mono-clinical">
                     {selectedPatient.name} ({selectedPatient.mrn})
                   </p>
                 </div>
@@ -624,13 +625,13 @@ export const PatientRecords: React.FC<PatientRecordsProps> = ({
             </div>
 
             <form onSubmit={handleDecrypt} className="space-y-3.5">
-              <div className="bg-blue-50/70 border border-blue-200 rounded-xl p-3 text-xs text-blue-900 leading-relaxed">
-                <strong>HIPAA § 164.530 Notice:</strong> You are accessing Protected Health Information. This decryption event will be permanently recorded with your user ID (<strong>{currentUser.name}</strong>, Role: <strong>{currentUser.role}</strong>).
+              <div className="bg-[#EBF3F0] border border-[#BBD5CB] rounded-xl p-3 text-xs text-[#0D3830] leading-relaxed">
+                <strong>HIPAA § 164.530 Protocol:</strong> Decryption will be permanently signed in the Kaze Hospital compliance audit queue under user <strong>{currentUser.name}</strong> ({currentUser.role}).
               </div>
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Clinical Access Rationale (Required for Audit Log)
+                  Clinical Access Rationale (Mandatory)
                 </label>
                 <select
                   value={justification}
@@ -645,7 +646,7 @@ export const PatientRecords: React.FC<PatientRecordsProps> = ({
               </div>
 
               {decryptError && (
-                <div className="p-2.5 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700">
+                <div className="p-2.5 bg-rose-50 border border-rose-200 rounded-lg text-xs text-rose-800">
                   {decryptError}
                 </div>
               )}
@@ -662,13 +663,13 @@ export const PatientRecords: React.FC<PatientRecordsProps> = ({
                   id="confirm-decrypt-submit-btn"
                   type="submit"
                   disabled={isDecrypting}
-                  className="px-4 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 rounded-lg flex items-center gap-1.5 cursor-pointer shadow-xs"
+                  className="px-4 py-2 text-xs font-bold text-white bg-[#0E2C27] hover:bg-[#14443C] disabled:opacity-50 rounded-lg flex items-center gap-1.5 cursor-pointer shadow-xs"
                 >
                   {isDecrypting ? (
-                    <span>Verifying & Decrypting...</span>
+                    <span>Verifying Credentials...</span>
                   ) : (
                     <>
-                      <Unlock className="w-3.5 h-3.5" />
+                      <Unlock className="w-3.5 h-3.5 text-emerald-300" />
                       <span>Authenticate & Decrypt</span>
                     </>
                   )}
@@ -679,17 +680,17 @@ export const PatientRecords: React.FC<PatientRecordsProps> = ({
         </div>
       )}
 
-      {/* ADD PROGRESS NOTE MODAL */}
+      {/* ADD SOAP NOTE MODAL */}
       {isAddNoteModalOpen && selectedPatient && (
-        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 bg-[#071714]/80 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="w-full max-w-lg bg-white rounded-2xl shadow-2xl border border-slate-200 p-6 animate-in fade-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
               <div>
-                <h3 className="text-base font-bold text-slate-900">
-                  Add Clinical Progress Note
+                <h3 className="text-base font-bold text-slate-900 font-sans">
+                  Add Clinical SOAP Progress Note
                 </h3>
-                <p className="text-xs text-slate-500">
-                  Will be encrypted with AES-256-GCM before saving to server
+                <p className="text-xs text-slate-500 font-mono-clinical">
+                  Encrypted with AES-256-GCM before persistent database write
                 </p>
               </div>
               <button 
@@ -703,7 +704,7 @@ export const PatientRecords: React.FC<PatientRecordsProps> = ({
             <form onSubmit={handleSaveNote} className="space-y-3.5">
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Specialty / Department Service
+                  Clinical Service / Department
                 </label>
                 <input
                   type="text"
@@ -716,14 +717,14 @@ export const PatientRecords: React.FC<PatientRecordsProps> = ({
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Clinical Note (SOAP format: Subjective, Objective, Assessment, Plan)
+                  Physician SOAP Assessment & Plan
                 </label>
                 <textarea
                   id="clinical-note-textarea"
                   rows={4}
                   value={newNoteText}
                   onChange={(e) => setNewNoteText(e.target.value)}
-                  placeholder="e.g. Patient ambulating well post-op. Vital signs stable, afebrile. Wound clean, dry and intact. Plan to advance diet to regular and discontinue IV fluids tomorrow morning."
+                  placeholder="Subjective, Objective, Assessment, and Plan notes..."
                   className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-xs text-slate-900"
                   required
                 />
@@ -741,9 +742,9 @@ export const PatientRecords: React.FC<PatientRecordsProps> = ({
                   id="save-clinical-note-btn"
                   type="submit"
                   disabled={isSavingNote || !newNoteText.trim()}
-                  className="px-4 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 rounded-lg flex items-center gap-1.5 cursor-pointer shadow-xs"
+                  className="px-4 py-2 text-xs font-bold text-white bg-[#0E2C27] hover:bg-[#14443C] disabled:opacity-50 rounded-lg flex items-center gap-1.5 cursor-pointer shadow-xs"
                 >
-                  {isSavingNote ? 'Encrypting & Saving...' : 'Encrypt & Save Note'}
+                  {isSavingNote ? 'Encrypting & Storing...' : 'Seal & Save Note'}
                 </button>
               </div>
             </form>
@@ -751,17 +752,17 @@ export const PatientRecords: React.FC<PatientRecordsProps> = ({
         </div>
       )}
 
-      {/* REGISTER PATIENT MODAL */}
+      {/* REGISTER PATIENT INTAKE MODAL */}
       {isRegisterModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 bg-[#071714]/80 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl border border-slate-200 p-6 animate-in fade-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
               <div>
-                <h3 className="text-base font-bold text-slate-900">
-                  New Patient Intake Registration
+                <h3 className="text-base font-bold text-slate-900 font-sans">
+                  Kaze Hospital Patient Intake
                 </h3>
-                <p className="text-xs text-slate-500">
-                  Initializes new encrypted health ledger & generates MRN
+                <p className="text-xs text-slate-500 font-mono-clinical">
+                  Assigns permanent MRN and seeds hardware-encrypted health ledger
                 </p>
               </div>
               <button 
@@ -775,14 +776,14 @@ export const PatientRecords: React.FC<PatientRecordsProps> = ({
             <form onSubmit={handleRegisterPatient} className="space-y-3">
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Full Name
+                  Legal Full Name
                 </label>
                 <input
                   id="new-patient-name"
                   type="text"
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
-                  placeholder="e.g. Clara Oswald"
+                  placeholder="e.g. Kenzo Shibata"
                   className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-xs text-slate-900"
                   required
                 />
@@ -839,7 +840,7 @@ export const PatientRecords: React.FC<PatientRecordsProps> = ({
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Phone Number
+                    Phone Contact
                   </label>
                   <input
                     type="tel"
@@ -853,7 +854,7 @@ export const PatientRecords: React.FC<PatientRecordsProps> = ({
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Primary Insurance Provider
+                  Insurance Payer
                 </label>
                 <select
                   value={newInsurance}
@@ -871,7 +872,7 @@ export const PatientRecords: React.FC<PatientRecordsProps> = ({
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Insurance Policy / Member ID
+                  Policy / Member ID
                 </label>
                 <input
                   type="text"
@@ -893,9 +894,9 @@ export const PatientRecords: React.FC<PatientRecordsProps> = ({
                 <button
                   id="confirm-register-patient-btn"
                   type="submit"
-                  className="px-4 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg cursor-pointer shadow-xs"
+                  className="px-4 py-2 text-xs font-bold text-white bg-[#0E2C27] hover:bg-[#14443C] rounded-lg cursor-pointer shadow-xs"
                 >
-                  Register & Initialize Vault
+                  Register & Seal Vault
                 </button>
               </div>
             </form>
