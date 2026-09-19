@@ -1582,7 +1582,9 @@ async function startServer() {
   }
 
   app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Kaze Hospital Core Server running on http://0.0.0.0:${PORT}`);
+    console.log(`\n  🏥 Kaze Hospital Core Server running:`);
+    console.log(`  ➜ Local:   http://localhost:${PORT}/`);
+    console.log(`  ➜ Network: http://127.0.0.1:${PORT}/\n`);
   });
 }
 
